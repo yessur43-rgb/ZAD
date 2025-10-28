@@ -1,22 +1,23 @@
-// FIX: Completed the truncated App component and added the missing default export.
-import React, { useState, useRef, useEffect } from 'react';
-import ImageAnalyzer from './components/ImageAnalyzer';
-import ChatBot from './components/ChatBot';
+import React, { useState, useRef, useEffect, lazy, Suspense } from 'react';
 import Header from './Header';
 import { ImageIcon } from './components/icons/ImageIcon';
 import { ChatIcon } from './components/icons/ChatIcon';
-import IngredientGuide from './components/IngredientGuide';
 import { IngredientIcon } from './components/icons/IngredientIcon';
 import { FindItIcon } from './components/icons/FindItIcon';
-import FindIt from './components/FindIt';
 import { MenuIcon } from './components/icons/MenuIcon';
-import MenuAnalyzer from './components/MenuAnalyzer';
 import PermissionGate from './components/PermissionGate';
 import { ActivityIcon } from './components/icons/ActivityIcon';
-import ActivitiesFinder from './components/ActivitiesFinder';
 import { AppIcon } from './components/icons/AppIcon';
 import { OnMyWayIcon } from './components/icons/OnMyWayIcon';
-import OnMyWay from './components/OnMyWay';
+
+// Lazy load tool components for code splitting to improve initial load time.
+const ImageAnalyzer = lazy(() => import('./components/ImageAnalyzer'));
+const ChatBot = lazy(() => import('./components/ChatBot'));
+const FindIt = lazy(() => import('./components/FindIt'));
+const OnMyWay = lazy(() => import('./components/OnMyWay'));
+const MenuAnalyzer = lazy(() => import('./components/MenuAnalyzer'));
+const ActivitiesFinder = lazy(() => import('./components/ActivitiesFinder'));
+const IngredientGuide = lazy(() => import('./components/IngredientGuide'));
 
 type ToolView = 'image' | 'chat' | 'findit' | 'menu' | 'ingredient' | 'activities' | 'onmyway';
 
@@ -85,7 +86,19 @@ const App: React.FC = () => {
                   <h2 className="text-xl font-bold text-gray-800 dark:text-white">{toolLabelMap[selectedTool]}</h2>
               </div>
               <div className="flex-grow overflow-y-auto">
-                  {toolComponentMap[selectedTool]}
+                <Suspense fallback={
+                    <div className="flex justify-center items-center h-full p-4">
+                        <div className="text-center">
+                            <svg className="animate-spin h-8 w-8 text-emerald-500 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <p className="mt-2 text-gray-500 dark:text-gray-400">جاري تحميل الأداة...</p>
+                        </div>
+                    </div>
+                }>
+                    {toolComponentMap[selectedTool]}
+                </Suspense>
               </div>
           </div>
       );
