@@ -36,8 +36,9 @@ import {
     TRAVEL_GUIDE_SCHEMA
 } from '../constants';
 
-// Initialize the Google Gemini AI client
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
+// Helper function to get a fresh AI client instance.
+// This ensures that the most up-to-date API key from the environment is used for every request.
+const getAiClient = () => new GoogleGenAI({ apiKey: process.env.API_KEY as string });
 
 // Helper to safely parse JSON responses from the model
 const parseJsonResponse = <T>(jsonString: string, schemaName: string): T => {
@@ -72,6 +73,7 @@ const mapGeminiPlaceToPlace = (geminiPlace: GeminiPlace): Place => {
 const productSystemInstruction = 'أنت خبير في الشريعة الإسلامية ومختص في تحليل المنتجات الغذائية لتحديد مدى توافقها مع أحكام الحلال. قم بتحليل المكونات بدقة وقدم إجابة واضحة وموجزة مع الأدلة. كن محايداً ومبنياً على الحقائق.';
 
 export const analyzeImage = async (base64Data: string, mimeType: string): Promise<GeminiResponse> => {
+  const ai = getAiClient();
   const imagePart = { inlineData: { data: base64Data, mimeType } };
   const textPart = { text: 'حلل صورة هذا المنتج الغذائي. ركز على قائمة المكونات لتحديد ما إذا كان حلالاً أم حراماً أم مشبوهاً. قدم تقييماً صحياً موجزاً. يجب أن تكون الإجابة بتنسيق JSON حصرياً باللغة العربية.' };
   
@@ -89,6 +91,7 @@ export const analyzeImage = async (base64Data: string, mimeType: string): Promis
 };
 
 export const analyzeBarcode = async (barcode: string): Promise<GeminiResponse> => {
+    const ai = getAiClient();
     const initialPrompt = `ابحث عن معلومات حول المنتج المرتبط بالباركود التالي: ${barcode}. ركز على العثور على قائمة المكونات الكاملة وأي معلومات حول شهادات الحلال.`;
     
     // Step 1: Get information using Google Search
@@ -122,6 +125,7 @@ export const analyzeBarcode = async (barcode: string): Promise<GeminiResponse> =
 const menuSystemInstruction = "أنت خبير في الطعام الحلال ومحلل قوائم طعام ذكي. مهمتك هي تحليل صورة قائمة الطعام بعمق، مع التركيز الشديد على الأطباق الرئيسية والمقبلات والحلويات. تجاهل المشروبات البسيطة والواضحة مثل الماء، الشاي، القهوة، والمشروبات الغازية ما لم تكن تحتوي على إضافات مشبوهة. هدفك هو مساعدة المستخدم المسلم على اتخاذ قرارات مستنيرة بشأن الوجبات المعقدة. لكل طبق، قدم تقييمًا واضحًا: 'حلال'، 'مشكوك فيه'، أو 'حرام'. للعناصر المشكوك فيها، قدم نصيحة عملية (مثال: 'اسأل عن مصدر اللحم' أو 'تأكد من خلو الصلصة من الكحول').";
 
 export const analyzeMenuImage = async (base64Data: string, mimeType: string): Promise<HalalHaramListResponse> => {
+  const ai = getAiClient();
   const imagePart = { inlineData: { data: base64Data, mimeType } };
   const textPart = { text: 'حلل صورة قائمة الطعام هذه. تجاهل المشروبات البديهية مثل الماء والشاي والقهوة. ركز على الأطباق الرئيسية والمقبلات والحلويات. حدد العناصر الحلال بشكل واضح، والعناصر التي قد تكون حراماً أو مشبوهة. لكل عنصر مشبوه، اشرح السبب وقدم سؤالاً محدداً يمكن للمستخدم طرحه على النادل. يجب أن تكون الإجابة بتنسيق JSON حصرياً باللغة العربية.' };
   
@@ -148,6 +152,7 @@ export const findPlaces = async (
     query: string,
     location: { latitude: number; longitude: number } | null
 ): Promise<{ text: string; places: Place[] }> => {
+    const ai = getAiClient();
     const history = chatHistory.map(msg => ({
         role: msg.role,
         parts: msg.parts.map(p => ({text: p.text}))
@@ -188,6 +193,7 @@ export const findPlacesOnRoute = async (
     destination: string,
     query: string
 ): Promise<{ text: string; places: Place[] }> => {
+    const ai = getAiClient();
     const fullQuery = `اعرض لي ${query} في الطريق من "${start}" إلى "${destination}".`;
     
     const response = await ai.models.generateContent({
@@ -214,6 +220,7 @@ export const findPlacesOnRoute = async (
 
 
 export const getIngredientInfo = async (ingredient: string): Promise<string> => {
+    const ai = getAiClient();
     const prompt = `قدم شرحاً مفصلاً عن المكون التالي: "${ingredient}". وضح مصدره الشائع (حيواني، نباتي، صناعي)، استخداماته، وحكمه الشرعي في الإسلام مع ذكر أي خلافات بين الفقهاء إن وجدت. اجعل الإجابة واضحة ومباشرة.`;
 
     const response = await ai.models.generateContent({
@@ -226,6 +233,7 @@ export const getIngredientInfo = async (ingredient: string): Promise<string> => 
 };
 
 export const getHalalDishes = async (restaurantName: string): Promise<DishSuggestionResponse> => {
+    const ai = getAiClient();
     const searchPrompt = `ابحث عن قائمة الطعام أو آراء العملاء حول الأطباق الشعبية في مطعم "${restaurantName}".`;
 
     // Step 1: Get information using Google Search
@@ -266,6 +274,7 @@ export const getHalalDishes = async (restaurantName: string): Promise<DishSugges
 };
 
 export const getHalalHaramList = async (place: Place): Promise<HalalHaramListResponse> => {
+    const ai = getAiClient();
     const searchPrompt = `ابحث عن قائمة الطعام أو المأكولات والمشروبات المعتادة في "${place.name}" الموجود في "${place.address || ''}".`;
 
     const searchResponse = await ai.models.generateContent({
@@ -307,6 +316,7 @@ export const getHalalHaramList = async (place: Place): Promise<HalalHaramListRes
 };
 
 export const findParkingForPlace = async (place: Place): Promise<ParkingSuggestionResponse> => {
+    const ai = getAiClient();
     const searchPrompt = `ابحث عن أفضل 2-3 خيارات لمواقف السيارات بالقرب من "${place.name}" في "${place.address || ''}". اذكر اسم الموقف، عنوانه الكامل، رابط خرائط جوجل، المسافة، تفاصيل الأسعار، وأي ملاحظات. أجب بتنسيق JSON حصرياً باللغة العربية بناءً على مخطط PARKING_INFO_SCHEMA.`;
     
     const response = await ai.models.generateContent({
@@ -321,6 +331,7 @@ export const findParkingForPlace = async (place: Place): Promise<ParkingSuggesti
 };
 
 export const findProductInStores = async (base64Data: string, mimeType: string, location: { latitude: number; longitude: number }): Promise<FindItResponse> => {
+    const ai = getAiClient();
     const imagePart = { inlineData: { data: base64Data, mimeType } };
     const textPart1 = { text: 'ما هو اسم المنتج في هذه الصورة؟ أجب باسم المنتج فقط.' };
     
@@ -355,6 +366,7 @@ export const findProductInStoresByText = async (productName: string, location: {
 };
 
 export const findVignetteInfo = async (country: string): Promise<VignetteDetailsResponse> => {
+    const ai = getAiClient();
     const prompt = `أحتاج معلومات مفصلة حول استيكر العبور (Vignette) لدولة "${country}". أريد معرفة الأسعار، فترات الصلاحية، أماكن الشراء، ملاحظات هامة، والموقع الرسمي للشراء إن وجد. قدم نصائح محددة للمسافرين القادمين بالسيارة من الدول المجاورة. أجب بتنسيق JSON حصرياً باللغة العربية بناءً على مخطط VIGNETTE_INFO_SCHEMA.`;
     const response = await ai.models.generateContent({
         model: "gemini-2.5-pro",
@@ -375,6 +387,7 @@ export const findVignetteInfo = async (country: string): Promise<VignetteDetails
 
 
 export const identifyObjectOrPlace = async (base64Data: string, mimeType: string): Promise<IdentificationResponse> => {
+    const ai = getAiClient();
     const imagePart = { inlineData: { data: base64Data, mimeType } };
     const textPart = { text: 'تعرف على هذا الشيء أو المكان في الصورة. قدم اسمًا، وصفًا تفصيليًا، وإذا كان مكانًا ثابتًا، فاذكر العنوان ورابط خرائط جوجل. يجب أن تكون الإجابة بتنسيق JSON حصريًا باللغة العربية بناءً على مخطط IDENTIFICATION_SCHEMA.' };
     
@@ -392,6 +405,7 @@ export const identifyObjectOrPlace = async (base64Data: string, mimeType: string
 
 
 export const findActivities = async (location: { latitude: number; longitude: number } | string, query?: string): Promise<Activity[]> => {
+    const ai = getAiClient();
     const locationString = typeof location === 'string'
         ? `في ${location}`
         : `بالقرب مني`;
@@ -441,6 +455,7 @@ export const findActivities = async (location: { latitude: number; longitude: nu
 
 // --- Travel Planner Functions ---
 export const generateTripFramework = async (destination: string): Promise<ItineraryPlan> => {
+    const ai = getAiClient();
     const prompt = `أنشئ إطارًا مقترحًا لرحلة سياحية عائلية لمدة 3 أيام إلى "${destination}". يجب أن يكون الإطار مقسمًا إلى فترات (صباح، بعد الظهر، مساء) لكل يوم، مع وصف من سطر واحد لكل نشاط، وتحديد نوع النشاط (EAT, SIGHTSEEING, SHOPPING, ACTIVITY, TRAVEL, PRAYER).`;
 
     const response = await ai.models.generateContent({
@@ -457,6 +472,7 @@ export const generateTripFramework = async (destination: string): Promise<Itiner
 };
 
 export const getSuggestionsForStep = async (locationName: string, step: TripFrameworkStep): Promise<Suggestion[]> => {
+    const ai = getAiClient();
     const prompt = `بناءً على خطة السفر إلى "${locationName}"، اقترح 2-3 خيارات محددة للنشاط التالي: "${step.description}".
     إذا كان نوع النشاط "EAT"، فركز على المطاعم الحلال أو التي تقدم خيارات حلال.
     لكل اقتراح، قدم الاسم، وصفًا موجزًا، العنوان، رابط خرائط جوجل، وتقييم جوجل إن وجد.
@@ -493,6 +509,7 @@ export const getSuggestionsForStep = async (locationName: string, step: TripFram
 
 
 export const getNearbyPlacesForMap = async (latitude: number, longitude: number): Promise<NearbyPlacesResponse> => {
+    const ai = getAiClient();
     const prompt = `ابحث عن أماكن مثيرة للاهتمام بالقرب مني، بما في ذلك مطاعم، مقاهي، معالم سياحية، ومتاجر. أجب بتنسيق JSON حصرياً باللغة العربية بناءً على مخطط NEARBY_PLACES_SCHEMA.`;
     const response = await ai.models.generateContent({
         model: 'gemini-2.5-pro',
@@ -513,6 +530,7 @@ export const getNearbyPlacesForMap = async (latitude: number, longitude: number)
 
 
 export const generateCommonPhrasesForTravel = async (destination: string): Promise<CommonPhrasesResponse> => {
+    const ai = getAiClient();
     const prompt = `أنا مسافر إلى "${destination}". قم بإنشاء قائمة بالعبارات الشائعة والمفيدة للمسافرين باللغة المحلية. يجب أن تتضمن القائمة فئات مثل "التحيات"، "في المطعم"، "التسوق"، و"الطوارئ". لكل عبارة، قدم النص الأصلي باللغة العربية، الترجمة، وطريقة النطق المبسطة. حدد اسم اللغة ورمز اللغة BCP-47.`;
     const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash',
@@ -527,6 +545,7 @@ export const generateCommonPhrasesForTravel = async (destination: string): Promi
 };
 
 export const translateCustomPhrase = async (phrase: string, language: string): Promise<Omit<Phrase, 'original'>> => {
+    const ai = getAiClient();
     const prompt = `ترجم العبارة العربية التالية: "${phrase}" إلى لغة ${language}. قدم الترجمة والنطق المبسط فقط.`;
     const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash',
@@ -541,6 +560,7 @@ export const translateCustomPhrase = async (phrase: string, language: string): P
 
 
 export const generateTravelGuide = async (location: string): Promise<TravelGuideResponse> => {
+    const ai = getAiClient();
     const prompt = `أنشئ دليل سفر شامل ومفصل للمسافر المسلم إلى "${location}". يجب أن يغطي الدليل جميع الجوانب المهمة مثل متطلبات الدخول، المواصلات، العملة، الاتصالات، الصحة والسلامة، الثقافة المحلية، معلومات خاصة بالمسلمين (طعام حلال، مساجد)، ومعلومات عملية. أجب بتنسيق JSON حصرياً باللغة العربية بناءً على مخطط TRAVEL_GUIDE_SCHEMA.`;
      const response = await ai.models.generateContent({
         model: 'gemini-2.5-pro',

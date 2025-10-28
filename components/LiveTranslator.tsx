@@ -34,8 +34,6 @@ const languages = [
   { code: 'zh-CN', name: '中文 (简体)' },
 ];
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
-
 const LiveTranslator: React.FC = () => {
     const [isListening, setIsListening] = useState(false);
     const [sourceLang, setSourceLang] = useState('ar-SA');
@@ -62,6 +60,7 @@ const LiveTranslator: React.FC = () => {
         const prompt = `Translate the following text from ${sourceLangName} to ${targetLangName}:\n\n${text}`;
         
         try {
+            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
             const response = await ai.models.generateContentStream({
                 model: 'gemini-2.5-flash',
                 contents: prompt,
@@ -113,6 +112,7 @@ const LiveTranslator: React.FC = () => {
             mediaStreamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true });
             audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
             
+            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
             const sessionPromise = ai.live.connect({
                 model: 'gemini-2.5-flash-native-audio-preview-09-2025',
                 config: {
