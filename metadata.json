@@ -1,0 +1,8 @@
+{
+  "name": "Halal Compliance AI",
+  "description": "An AI-powered application to check the Halal status of food products from images and verify Halal compliance for restaurants. Users can upload images for analysis or chat with an AI to inquire about restaurants.",
+  "requestFramePermissions": [
+    "camera",
+    "geolocation"
+  ]
+}
