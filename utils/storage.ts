@@ -1,8 +1,7 @@
 import { HistoryItem, CommunityTip, TipCategory } from '../types';
 
 const HISTORY_KEY = 'halalScanHistory';
-const COMMUNITY_TIPS_KEY = 'communityHubTips';
-
+const COMMUNITY_TIPS_KEY_PREFIX = 'communityTips_';
 
 // --- START: Scan History Functions ---
 
@@ -49,65 +48,56 @@ export const clearScanHistory = (): void => {
 
 // --- END: Scan History Functions ---
 
-
-// --- START: Community Hub Functions ---
-
-const normalizeLocation = (location: string) => location.trim().toLowerCase();
+// --- START: Community Tip Functions ---
 
 export const getCommunityTips = (location: string): CommunityTip[] => {
-    const locationKey = normalizeLocation(location);
-    if (!locationKey) return [];
+    const key = `${COMMUNITY_TIPS_KEY_PREFIX}${location.toLowerCase().trim()}`;
     try {
-        const allTipsData = localStorage.getItem(COMMUNITY_TIPS_KEY);
-        const allTips: Record<string, CommunityTip[]> = allTipsData ? JSON.parse(allTipsData) : {};
-        return (allTips[locationKey] || []).sort((a, b) => b.upvotes - a.upvotes || b.timestamp - a.timestamp);
+        const tipsJson = localStorage.getItem(key);
+        if (tipsJson) {
+            const tips: CommunityTip[] = JSON.parse(tipsJson);
+            // Sort by upvotes desc, then by timestamp desc
+            return tips.sort((a, b) => b.upvotes - a.upvotes || b.timestamp - a.timestamp);
+        }
     } catch (error) {
         console.error('Failed to retrieve community tips:', error);
-        return [];
+    }
+    return [];
+};
+
+const saveTipsForLocation = (location: string, tips: CommunityTip[]): void => {
+    const key = `${COMMUNITY_TIPS_KEY_PREFIX}${location.toLowerCase().trim()}`;
+    try {
+        localStorage.setItem(key, JSON.stringify(tips));
+    } catch (error) {
+        console.error('Failed to save community tips:', error);
     }
 };
 
 export const saveCommunityTip = (location: string, content: string, category: TipCategory): CommunityTip[] => {
-    const locationKey = normalizeLocation(location);
+    const currentTips = getCommunityTips(location);
     const newTip: CommunityTip = {
-        id: Date.now().toString(),
+        id: new Date().toISOString(),
         content,
         category,
-        upvotes: 0,
         timestamp: Date.now(),
+        upvotes: 0,
     };
-
-    try {
-        const allTipsData = localStorage.getItem(COMMUNITY_TIPS_KEY);
-        const allTips: Record<string, CommunityTip[]> = allTipsData ? JSON.parse(allTipsData) : {};
-        const locationTips = allTips[locationKey] || [];
-        const updatedTips = [newTip, ...locationTips];
-        allTips[locationKey] = updatedTips;
-        localStorage.setItem(COMMUNITY_TIPS_KEY, JSON.stringify(allTips));
-        return updatedTips.sort((a, b) => b.upvotes - a.upvotes || b.timestamp - a.timestamp);
-    } catch (error) {
-        console.error('Failed to save community tip:', error);
-        return getCommunityTips(location);
-    }
+    const updatedTips = [newTip, ...currentTips];
+    saveTipsForLocation(location, updatedTips);
+    return updatedTips;
 };
 
 export const upvoteCommunityTip = (location: string, tipId: string): CommunityTip[] => {
-    const locationKey = normalizeLocation(location);
-    try {
-        const allTipsData = localStorage.getItem(COMMUNITY_TIPS_KEY);
-        const allTips: Record<string, CommunityTip[]> = allTipsData ? JSON.parse(allTipsData) : {};
-        const locationTips = allTips[locationKey] || [];
-        const tipIndex = locationTips.findIndex(t => t.id === tipId);
-
-        if (tipIndex > -1) {
-            locationTips[tipIndex].upvotes += 1;
-            allTips[locationKey] = locationTips;
-            localStorage.setItem(COMMUNITY_TIPS_KEY, JSON.stringify(allTips));
-        }
-        return locationTips.sort((a, b) => b.upvotes - a.upvotes || b.timestamp - a.timestamp);
-    } catch (error) {
-        console.error('Failed to upvote tip:', error);
-        return getCommunityTips(location);
+    const currentTips = getCommunityTips(location);
+    const tipIndex = currentTips.findIndex(tip => tip.id === tipId);
+    if (tipIndex > -1) {
+        currentTips[tipIndex].upvotes += 1;
+        saveTipsForLocation(location, currentTips);
+        // Return a new sorted array to trigger re-renders in React components
+        return [...currentTips].sort((a, b) => b.upvotes - a.upvotes || b.timestamp - a.timestamp);
     }
+    return currentTips;
 };
-// --- END: Community Hub Functions ---
+
+// --- END: Community Tip Functions ---

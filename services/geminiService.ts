@@ -7,15 +7,17 @@ import {
     ParkingSuggestionResponse,
     FindItResponse, 
     VignetteDetailsResponse,
+    HalalHaramListResponse,
+    ActivityResponse,
+    Activity,
+    IdentificationResponse,
     ItineraryPlan,
     TripFrameworkStep,
     Suggestion,
-    HalalHaramListResponse,
-    TravelGuideResponse,
+    NearbyPlacesResponse,
     CommonPhrasesResponse,
     Phrase,
-    ActivityResponse,
-    Activity
+    TravelGuideResponse
 } from '../types';
 import { 
     PRODUCT_ANALYSIS_SCHEMA, 
@@ -23,15 +25,15 @@ import {
     PARKING_INFO_SCHEMA,
     FIND_PRODUCT_SCHEMA, 
     VIGNETTE_INFO_SCHEMA,
+    HALAL_HARAM_LIST_SCHEMA,
+    ACTIVITY_SCHEMA,
+    IDENTIFICATION_SCHEMA,
     TRIP_FRAMEWORK_SCHEMA,
     SUGGESTIONS_SCHEMA,
-    FRAMEWORK_PROMPT,
-    SUGGESTION_PROMPT,
-    HALAL_HARAM_LIST_SCHEMA,
-    TRAVEL_GUIDE_SCHEMA,
+    NEARBY_PLACES_SCHEMA,
     PHRASES_SCHEMA,
-    TRANSLATED_PHRASE_SCHEMA,
-    ACTIVITY_SCHEMA
+    TRANSLATE_PHRASE_SCHEMA,
+    TRAVEL_GUIDE_SCHEMA
 } from '../constants';
 
 // Initialize the Google Gemini AI client
@@ -419,153 +421,22 @@ export const findVignetteInfo = async (country: string): Promise<VignetteDetails
     return { ...result, sources };
 };
 
-// --- START: Interactive Travel Planner Functions ---
-
-export const generateTripFramework = async (destination: string): Promise<ItineraryPlan> => {
-    const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: FRAMEWORK_PROMPT(destination),
-        config: {
-            responseMimeType: "application/json",
-            responseSchema: TRIP_FRAMEWORK_SCHEMA,
-        },
-        systemInstruction: 'أنت مساعد تخطيط رحلات للمسلمين. قم بإنشاء إطار عمل مرن وقابل للتخصيص.'
-    });
-
-    return parseJsonResponse<ItineraryPlan>(response.text, 'TripFramework');
-};
-
-export const getSuggestionsForStep = async (locationName: string, step: TripFrameworkStep): Promise<Suggestion[]> => {
-    const prompt = SUGGESTION_PROMPT(locationName, step.description);
-
-    // Step 1: Use Google Maps/Search to find places
-    const searchResponse = await ai.models.generateContent({
-        model: 'gemini-2.5-pro',
-        contents: prompt,
-        config: {
-            tools: [{ googleMaps: {}, googleSearch: {} }],
-        },
-        systemInstruction: 'أنت خبير سفر للمسلمين، استخدم الأدوات للعثور على أفضل الاقتراحات العملية.'
-    });
-
-    const context = searchResponse.text;
-    const groundingChunks = searchResponse.candidates?.[0]?.groundingMetadata?.groundingChunks;
-    
-    let groundingContext = '';
-    if (groundingChunks) {
-        groundingContext = groundingChunks.map(chunk => {
-            if (chunk.maps) return `Map Result: ${chunk.maps.title} at ${chunk.maps.placeAnswerSources?.[0]?.address || 'address unknown'}. Rating: ${chunk.maps.placeAnswerSources?.[0]?.rating || 'N/A'}.`;
-            if (chunk.web) return `Web Result: ${chunk.web.title} - ${chunk.web.snippet || 'No snippet'}`;
-            return '';
-        }).join('\n');
-    }
-
-    const fullContext = `Search results text: ${context}\n\nGrounding Data:\n${groundingContext}`;
-
-    // Step 2: Format the results into structured JSON
-    const formatPrompt = `بناءً على معلومات البحث التالية لـ"${step.description}" في "${locationName}":\n\n${fullContext}\n\nقدم 2-3 اقتراحات مفصلة بتنسيق JSON. ركز على توفير وصف مقنع وتأكيد حالة الحلال.`;
-
-    const jsonResponse = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: formatPrompt,
-        config: {
-            responseMimeType: 'application/json',
-            responseSchema: SUGGESTIONS_SCHEMA
-        },
-        systemInstruction: 'أنت مساعد سفر يقوم بتنسيق بيانات الاقتراحات إلى JSON منظم.'
-    });
-
-    // FIX: Corrected the type to ensure the 'name' property is not omitted from the parsed suggestions.
-    // The original `Omit<Suggestion, keyof Place>` incorrectly removed 'name', but the AI schema provides it.
-    const suggestions = parseJsonResponse<Omit<Suggestion, Exclude<keyof Place, 'name'>>[]>(jsonResponse.text, 'Suggestions');
-    
-    // Attempt to enrich suggestions with place data from grounding
-    const enrichedSuggestions: Suggestion[] = suggestions.map(sugg => {
-        // Find the most relevant place from grounding chunks
-        const relevantPlaceChunk = groundingChunks?.find(chunk => 
-            chunk.maps && chunk.maps.title.toLowerCase().includes(sugg.name.toLowerCase())
-        )?.maps;
-        
-        const placeDetails = relevantPlaceChunk ? mapGeminiPlaceToPlace(relevantPlaceChunk) : {};
-
-        return {
-            ...sugg,
-            ...placeDetails,
-            name: sugg.name, // ensure the AI-generated name is preserved
-        };
-    });
-
-    return enrichedSuggestions;
-};
-
-// --- END: Interactive Travel Planner Functions ---
-
-// --- START: Traveler's Guide Function ---
-export const generateTravelGuide = async (location: string): Promise<TravelGuideResponse> => {
-    const prompt = `أنت خبير سفر عالمي. قم بإنشاء دليل سفر شامل ومفصل باللغة العربية لـ "${location}".
-يجب أن يكون الدليل عمليًا ومفيدًا للمسافرين من جميع الخلفيات، مع قسم خاص للمسافرين المسلمين.
-قم بتغطية جميع الجوانب من الوصول إلى المغادرة.
-يجب أن تكون الإجابة بتنسيق JSON حصرياً.
-العبارات المفيدة يجب أن تكون خمس عبارات أساسية: مرحباً، شكراً لك، بكم هذا؟، أين هو ...؟، وداعاً.`;
+export const identifyObjectOrPlace = async (base64Data: string, mimeType: string): Promise<IdentificationResponse> => {
+    const imagePart = { inlineData: { data: base64Data, mimeType } };
+    const textPart = { text: 'Identify the main subject (object, building, plant, animal, place, etc.) in this image. Provide its name and a detailed description. If the subject is a fixed location (like a building or park), provide its full address and a Google Maps URL. If it\'s not a fixed location (like a car or an animal), you can omit the address and URL. Respond in JSON format in Arabic.' };
 
     const response = await ai.models.generateContent({
         model: 'gemini-2.5-pro',
-        contents: prompt,
+        contents: { parts: [imagePart, textPart] },
         config: {
             responseMimeType: "application/json",
-            responseSchema: TRAVEL_GUIDE_SCHEMA,
+            responseSchema: IDENTIFICATION_SCHEMA,
         },
-        systemInstruction: 'أنت مساعد سفر عالمي يقوم بإنشاء أدلة مفصلة ومنظمة بتنسيق JSON باللغة العربية.'
+        systemInstruction: 'You are a universal identification expert. Your task is to accurately identify the subject of an image—be it a place, an object, a plant, or an animal—and provide comprehensive, well-structured information about it in Arabic.',
     });
 
-    return parseJsonResponse<TravelGuideResponse>(response.text, 'TravelGuide');
+    return parseJsonResponse<IdentificationResponse>(response.text, 'Identification');
 };
-// --- END: Traveler's Guide Function ---
-
-// --- START: Phrase Translator Functions ---
-
-export const generateCommonPhrasesForTravel = async (destination: string): Promise<CommonPhrasesResponse> => {
-    const prompt = `أنت خبير لغات للمسافرين. قم بإنشاء قائمة من العبارات الشائعة والمفيدة باللغة العربية وترجمتها إلى اللغة المحلية لمدينة "${destination}".
-    قم بتضمين:
-    1.  اسم اللغة (languageName).
-    2.  رمز اللغة BCP-47 (langCode) لاستخدامه في النطق الصوتي.
-    3.  قم بتصنيف العبارات إلى فئات مثل "التحيات", "الطعام والمطاعم", "التسوق", "الطوارئ".
-    4.  لكل عبارة، قدم النص الأصلي بالعربية، الترجمة، والنطق الصوتي المبسط.
-    
-    يجب أن تكون الإجابة بتنسيق JSON حصرياً.`;
-
-    const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: prompt,
-        config: {
-            responseMimeType: "application/json",
-            responseSchema: PHRASES_SCHEMA,
-        },
-        systemInstruction: 'أنت مساعد لغوي للمسافرين، قم بإنشاء قوائم عبارات منظمة بتنسيق JSON.'
-    });
-
-    return parseJsonResponse<CommonPhrasesResponse>(response.text, 'CommonPhrases');
-};
-
-export const translateCustomPhrase = async (text: string, languageName: string): Promise<Omit<Phrase, 'original'>> => {
-    const prompt = `Translate the following Arabic phrase to ${languageName}. Provide the translation and a simple phonetic pronunciation.
-    Phrase: "${text}"
-    Respond in JSON format.`;
-    
-    const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: prompt,
-        config: {
-            responseMimeType: "application/json",
-            responseSchema: TRANSLATED_PHRASE_SCHEMA,
-        },
-        systemInstruction: 'You are a highly accurate translator. Provide the translation and phonetics in JSON format.'
-    });
-
-    return parseJsonResponse<Omit<Phrase, 'original'>>(response.text, 'TranslateCustomPhrase');
-};
-
-// --- END: Phrase Translator Functions ---
 
 // --- START: Activities Finder Function ---
 export const findActivities = async (location: { latitude: number; longitude: number } | string, query?: string): Promise<Activity[]> => {
@@ -642,3 +513,128 @@ export const findActivities = async (location: { latitude: number; longitude: nu
     return enrichedActivities;
 };
 // --- END: Activities Finder Function ---
+
+// --- START: Travel Planner Functions ---
+export const generateTripFramework = async (destination: string): Promise<ItineraryPlan> => {
+    const prompt = `Create a flexible 3-day travel itinerary framework for a Muslim family visiting "${destination}". The framework should include a mix of activities like sightseeing, eating, and prayer times. Focus on general activity types, not specific places. The response must be a JSON object.`;
+
+    const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+        config: {
+            responseMimeType: "application/json",
+            responseSchema: TRIP_FRAMEWORK_SCHEMA,
+        },
+        systemInstruction: "You are a helpful travel assistant for Muslim families. Create structured, high-level itinerary frameworks in JSON format."
+    });
+
+    return parseJsonResponse<ItineraryPlan>(response.text, 'TripFramework');
+};
+
+export const getSuggestionsForStep = async (locationName: string, step: TripFrameworkStep): Promise<Suggestion[]> => {
+    const prompt = `Find 2-3 specific, Muslim-friendly suggestions for the following step in a trip to ${locationName}:
+    - Time: ${step.timeOfDay}
+    - Activity: ${step.description}
+    - Type: ${step.activityType}
+    For restaurants, prioritize places that are certified Halal or explicitly offer Halal options. Use Google Maps to find real places with details like address, rating, and URL. Format the response as a JSON object.`;
+
+    const response = await ai.models.generateContent({
+        model: 'gemini-2.5-pro',
+        contents: prompt,
+        config: {
+            tools: [{ googleMaps: {} }],
+            responseMimeType: "application/json",
+            responseSchema: SUGGESTIONS_SCHEMA,
+        },
+        systemInstruction: "You are a travel agent specializing in Halal tourism. You provide specific, real-world suggestions based on user requests, using mapping tools to ensure accuracy. Your output is always in JSON format."
+    });
+
+    const result = parseJsonResponse<{ suggestions: Suggestion[] }>(response.text, 'Suggestions');
+    return result.suggestions || [];
+};
+// --- END: Travel Planner Functions ---
+
+// --- START: Nearby Places Function ---
+export const getNearbyPlacesForMap = async (latitude: number, longitude: number): Promise<NearbyPlacesResponse> => {
+    const prompt = `Find a diverse mix of about 10-15 interesting places near the coordinates ${latitude}, ${longitude}. Include a mix of halal-friendly restaurants, cafes, significant sights, and interesting shops. For each place, provide its name, exact coordinates, category, address, rating, and Google Maps URL. The category must be one of: 'restaurant', 'cafe', 'sight', 'shop', or 'other'. Respond only with a JSON object.`;
+    
+    const response = await ai.models.generateContent({
+        model: 'gemini-2.5-pro',
+        contents: prompt,
+        config: {
+            tools: [{ googleMaps: {} }],
+            toolConfig: {
+                retrievalConfig: {
+                    latLng: {
+                        latitude: latitude,
+                        longitude: longitude
+                    }
+                }
+            },
+            responseMimeType: "application/json",
+            responseSchema: NEARBY_PLACES_SCHEMA
+        },
+        systemInstruction: "You are a location-aware assistant that finds interesting places for users. You use mapping tools to get accurate data and provide it in a structured JSON format."
+    });
+
+    return parseJsonResponse<NearbyPlacesResponse>(response.text, 'NearbyPlaces');
+};
+// --- END: Nearby Places Function ---
+
+// --- START: Phrase Translator Functions ---
+export const generateCommonPhrasesForTravel = async (destination: string): Promise<CommonPhrasesResponse> => {
+    const prompt = `Generate a list of common, essential travel phrases for a tourist visiting "${destination}".
+    The phrases should be translated from Arabic to the primary local language.
+    Include phonetic pronunciations. Organize them into logical categories like "Greetings", "Basics", "Shopping", "Dining", and "Emergency".
+    The response must be a JSON object.`;
+
+    const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+        config: {
+            responseMimeType: "application/json",
+            responseSchema: PHRASES_SCHEMA,
+        },
+        systemInstruction: "You are a travel assistant that provides language help. Your output must be a well-structured JSON object."
+    });
+
+    return parseJsonResponse<CommonPhrasesResponse>(response.text, 'CommonPhrases');
+};
+
+export const translateCustomPhrase = async (phrase: string, language: string): Promise<Omit<Phrase, 'original'>> => {
+    const prompt = `Translate the following Arabic phrase to ${language}: "${phrase}".
+    Provide the translation and a simple phonetic pronunciation.
+    The response must be a JSON object.`;
+
+    const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+        config: {
+            responseMimeType: "application/json",
+            responseSchema: TRANSLATE_PHRASE_SCHEMA,
+        },
+        systemInstruction: "You are a helpful translator. Your output is always a well-structured JSON object."
+    });
+
+    return parseJsonResponse<Omit<Phrase, 'original'>>(response.text, 'TranslatePhrase');
+};
+// --- END: Phrase Translator Functions ---
+
+// FIX: Add function to generate a comprehensive travel guide.
+// --- START: Traveler Guide Function ---
+export const generateTravelGuide = async (location: string): Promise<TravelGuideResponse> => {
+    const prompt = `Create a comprehensive travel guide for a Muslim traveler visiting "${location}". The guide should be practical, culturally sensitive, and provide all the necessary information for a smooth trip. Ensure the response is in Arabic and formatted as a JSON object according to the provided schema.`;
+
+    const response = await ai.models.generateContent({
+        model: 'gemini-2.5-pro',
+        contents: prompt,
+        config: {
+            responseMimeType: "application/json",
+            responseSchema: TRAVEL_GUIDE_SCHEMA,
+        },
+        systemInstruction: "You are an expert travel writer who creates detailed, well-structured travel guides for Muslim tourists. Your output must be a JSON object in Arabic, strictly adhering to the user's requested schema."
+    });
+
+    return parseJsonResponse<TravelGuideResponse>(response.text, 'TravelGuide');
+};
+// --- END: Traveler Guide Function ---

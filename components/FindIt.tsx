@@ -1,27 +1,33 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { findProductInStores, findProductInStoresByText, findVignetteInfo } from '../services/geminiService';
-import { FindItResponse, Place, FindItCategory, VignetteDetailsResponse } from '../types';
+import { identifyObjectOrPlace, findProductInStores, findProductInStoresByText, findVignetteInfo } from '../services/geminiService';
+import { FindItResponse, FindItCategory, VignetteDetailsResponse, IdentificationResponse } from '../types';
 import { LoadingSpinner } from './icons/LoadingSpinner';
 import { CameraIcon } from './icons/CameraIcon';
 import PlaceCard from './RestaurantCard';
 import { FindItIcon } from './icons/FindItIcon';
 import { VignetteIcon } from './icons/VignetteIcon';
 import VignetteInfoCard from './VignetteInfoCard';
+import IdentificationInfoCard from './LandmarkInfoCard';
+import { SightseeingIcon } from './icons/SightseeingIcon';
+
 
 const FindIt: React.FC = () => {
   const [category, setCategory] = useState<FindItCategory>('product');
   
   // Product state
-  const [image, setImage] = useState<string | null>(null);
-  const [imageFile, setImageFile] = useState<File | null>(null);
   const [productName, setProductName] = useState<string>('');
   const [productResult, setProductResult] = useState<FindItResponse | null>(null);
 
   // Vignette state
   const [country, setCountry] = useState<string>('');
   const [vignetteResult, setVignetteResult] = useState<VignetteDetailsResponse | null>(null);
+  
+  // Identification state
+  const [identificationResult, setIdentificationResult] = useState<IdentificationResponse | null>(null);
 
   // Common state
+  const [image, setImage] = useState<string | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [location, setLocation] = useState<{ latitude: number, longitude: number } | null>(null);
@@ -31,28 +37,36 @@ const FindIt: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    setIsLocationLoading(true);
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setLocation({
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-          });
-          setLocationError(null);
-          setIsLocationLoading(false);
-        },
-        (err) => {
-          console.error(err);
-          setLocationError('يرجى تمكين الوصول إلى الموقع للعثور على المتاجر القريبة.');
-          setIsLocationLoading(false);
+    // Only request location if it's needed for the current category
+    if (category === 'product') {
+        setIsLocationLoading(true);
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    setLocation({
+                        latitude: position.coords.latitude,
+                        longitude: position.coords.longitude,
+                    });
+                    setLocationError(null);
+                    setIsLocationLoading(false);
+                },
+                (err) => {
+                    console.error(err);
+                    setLocationError('يرجى تمكين الوصول إلى الموقع للعثور على المتاجر القريبة.');
+                    setIsLocationLoading(false);
+                }
+            );
+        } else {
+            setLocationError('خاصية تحديد الموقع الجغرافي غير مدعومة في هذا المتصفح.');
+            setIsLocationLoading(false);
         }
-      );
     } else {
-      setLocationError('خاصية تحديد الموقع الجغرافي غير مدعومة في هذا المتصفح.');
-      setIsLocationLoading(false);
+        // For other categories, we don't need location upfront.
+        setLocation(null);
+        setLocationError(null);
+        setIsLocationLoading(false);
     }
-  }, []);
+  }, [category]); // Re-run when category changes
 
   const resetState = () => {
     setImage(null);
@@ -61,6 +75,7 @@ const FindIt: React.FC = () => {
     setProductResult(null);
     setCountry('');
     setVignetteResult(null);
+    setIdentificationResult(null);
     setError(null);
     setIsLoading(false);
     if (fileInputRef.current) fileInputRef.current.value = "";
@@ -151,6 +166,26 @@ const FindIt: React.FC = () => {
         console.error(err);
     } finally {
         setIsLoading(false);
+    }
+  };
+
+  const handleIdentificationAnalyzeClick = async () => {
+    if (!imageFile || !image) return;
+
+    setIsLoading(true);
+    setError(null);
+    setIdentificationResult(null);
+
+    try {
+      const base64Data = image.split(',')[1];
+      const analysisResult = await identifyObjectOrPlace(base64Data, imageFile.type);
+      setIdentificationResult(analysisResult);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.';
+      setError(errorMessage);
+      console.error(err);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -263,6 +298,64 @@ const FindIt: React.FC = () => {
         </div>
     </>
   );
+  
+    const renderIdentificationSearch = () => (
+    <>
+      <p className="text-gray-500 dark:text-gray-400 mt-1 mb-6 text-center">صوّر أي شيء وسأبحث لك عن معلومات مفصلة عنه وكيفية الوصول إليه إن كان مكاناً.</p>
+      <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 flex flex-col items-center text-center">
+        <input
+          type="file"
+          accept="image/*"
+          onChange={handleImageChange}
+          ref={fileInputRef}
+          className="hidden"
+        />
+        {image ? (
+          <div className="relative">
+            <img src={image} alt="Preview" className="max-h-60 rounded-lg shadow-md" />
+            <button 
+              onClick={() => {
+                setImage(null);
+                setImageFile(null);
+                setIdentificationResult(null);
+                if (fileInputRef.current) fileInputRef.current.value = "";
+              }} 
+              className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-lg"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+          </div>
+        ) : (
+            <div className="flex flex-col items-center justify-center h-48">
+              <CameraIcon className="w-16 h-16 text-gray-400 dark:text-gray-500" />
+              <p className="mt-2 text-sm text-gray-500">اسحب وأفلت صورة الشيء هنا، أو انقر للبحث</p>
+            </div>
+        )}
+      </div>
+
+      <div className="mt-4 grid grid-cols-1 gap-3">
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 font-bold rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition"
+        >
+          <CameraIcon className="w-5 h-5" />
+          <span>{image ? 'تغيير الصورة' : 'تحميل صورة'}</span>
+        </button>
+      </div>
+      
+      {image && (
+        <button
+          onClick={handleIdentificationAnalyzeClick}
+          disabled={isLoading || !image}
+          className="mt-3 w-full flex items-center justify-center gap-2 px-4 py-3 bg-emerald-600 text-white font-bold rounded-lg hover:bg-emerald-700 disabled:bg-emerald-300 transition"
+        >
+          {isLoading ? <LoadingSpinner /> : <SightseeingIcon className="w-5 h-5" />}
+          <span className="ml-2">{isLoading ? 'جاري التعرف...' : 'تعرف على ما في الصورة'}</span>
+        </button>
+      )}
+    </>
+  );
+
 
   return (
     <div className="flex flex-col items-center p-4">
@@ -278,9 +371,12 @@ const FindIt: React.FC = () => {
             <button onClick={() => handleCategoryChange('vignette')} className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm font-semibold rounded-md transition-colors duration-200 ${category === 'vignette' ? 'bg-white dark:bg-gray-800 text-emerald-600 shadow' : 'text-gray-600 dark:text-gray-300'}`}>
                 <VignetteIcon className="w-5 h-5" /> استيكر العبور
             </button>
+            <button onClick={() => handleCategoryChange('identify')} className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm font-semibold rounded-md transition-colors duration-200 whitespace-nowrap ${category === 'identify' ? 'bg-white dark:bg-gray-800 text-emerald-600 shadow' : 'text-gray-600 dark:text-gray-300'}`}>
+                <SightseeingIcon className="w-5 h-5" /> ما هذا؟
+            </button>
         </div>
 
-        {category === 'product' ? renderProductSearch() : renderVignetteSearch()}
+        {category === 'product' ? renderProductSearch() : category === 'vignette' ? renderVignetteSearch() : renderIdentificationSearch()}
 
       </div>
 
@@ -314,6 +410,10 @@ const FindIt: React.FC = () => {
 
         {vignetteResult && category === 'vignette' && (
              <VignetteInfoCard result={vignetteResult} />
+        )}
+        
+        {identificationResult && category === 'identify' && (
+             <IdentificationInfoCard result={identificationResult} />
         )}
       </div>
     </div>

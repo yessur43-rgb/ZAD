@@ -3,7 +3,6 @@ import { generateCommonPhrasesForTravel, translateCustomPhrase } from '../servic
 import { CommonPhrasesResponse, Phrase } from '../types';
 import { LoadingSpinner } from './icons/LoadingSpinner';
 import { SpeakerWaveIcon } from './icons/SpeakerWaveIcon';
-// FIX: Corrected the import to use the correctly named icon component file.
 import { TranslatorIcon } from './icons/TranslatorIcon';
 
 const PhraseTranslator: React.FC = () => {

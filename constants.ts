@@ -196,223 +196,18 @@ export const VIGNETTE_INFO_SCHEMA = {
     required: ['details']
 }
 
-// --- START: Interactive Travel Planner Schemas & Prompts ---
-
-export const TRIP_FRAMEWORK_SCHEMA = {
-  type: Type.OBJECT,
-  properties: {
-    'locationName': { type: Type.STRING, description: 'The name of the city/area identified from the user query.'},
-    'framework': {
-      type: Type.ARRAY,
-      description: 'An array of steps for a flexible daily itinerary.',
-      items: {
-        type: Type.OBJECT,
-        properties: {
-          'timeOfDay': { type: Type.STRING, enum: ['الصباح', 'الظهيرة', 'بعد الظهر', 'المساء', 'العشاء'], description: 'The part of the day.'},
-          'activityType': { type: Type.STRING, enum: ['EAT', 'SIGHTSEEING', 'SHOPPING', 'ACTIVITY', 'TRAVEL', 'PRAYER'], description: 'The category of the activity.' },
-          'description': { type: Type.STRING, description: 'A brief, one-sentence description of the suggested activity framework. E.g., "تناول الغداء في مطعم محلي مطل على البحيرة".'}
-        },
-        required: ['timeOfDay', 'activityType', 'description']
-      }
-    }
-  },
-  required: ['locationName', 'framework']
-};
-
-export const SUGGESTIONS_SCHEMA = {
-    type: Type.ARRAY,
-    description: "A list of 2-3 specific suggestions for the user's request.",
-    items: {
-        type: Type.OBJECT,
-        properties: {
-            'name': { type: Type.STRING },
-            'suggestionDescription': { type: Type.STRING, description: 'A detailed, persuasive description of why this is a good suggestion for a Muslim traveler.'},
-            'halalAssurance': { type: Type.STRING, description: 'Crucial information about Halal status. E.g., "مطعم حلال معتمد", "يقدم خيارات بحرية ونباتية", "لا يقدم الكحول". If not applicable, omit this field.'},
-        },
-        required: ['name', 'suggestionDescription']
-    }
-}
-
-export const FRAMEWORK_PROMPT = (destination: string) => `
-أنت "رفيق سفر" خبير وودود، متخصص في مساعدة المسافرين المسلمين.
-مهمتك هي إنشاء إطار عمل مرن ليوم كامل في "${destination}".
-لا تقم بإنشاء خطة مفصلة الآن، فقط اقترح إطارًا عامًا للأنشطة مقسمًا حسب أوقات اليوم (الصباح، الظهيرة، بعد الظهر، المساء).
-يجب أن يكون كل جزء من الإطار عبارة عن فكرة عامة، وليس مكانًا محددًا.
-مثال جيد: "الصباح: جولة في المدينة القديمة"، "الظهيرة: غداء في مطعم مطل على النهر".
-مثال سيء: "الصباح: اذهب إلى متحف اللوفر"، "الظهيرة: تناول الغداء في مطعم Le Procope".
-ركز على الأنشطة التي تهم المسافر المسلم.
-حدد اسم الموقع بوضوح في حقل locationName.
-`;
-
-export const SUGGESTION_PROMPT = (location: string, frameworkStepDescription: string) => `
-أنت "رفيق سفر" خبير وودود، متخصص في مساعدة المسافرين المسلمين.
-مهمتك هي تقديم 2-3 اقتراحات **محددة ومفصلة** للنشاط التالي في مدينة "${location}":
-"${frameworkStepDescription}"
-
-استخدم بحث جوجل وخرائط جوجل للعثور على أفضل الخيارات.
-لكل اقتراح، قدم:
-1.  اسم المكان.
-2.  وصفًا جذابًا ومقنعًا (suggestionDescription) يشرح لماذا هذا الخيار رائع ومناسب.
-3.  **الأهم:** معلومة واضحة عن حالة الحلال (halalAssurance). إذا كان مطعمًا، ابحث عن شهادة حلال. إذا لم تجد، ابحث عن بدائل ممتازة مثل مطاعم المأكولات البحرية أو النباتية واذكر ذلك بوضوح. إذا كان نشاطًا، اذكر ما إذا كان مناسبًا للعائلة وما إلى ذلك.
-
-استخدم نتائج الخرائط لتعزيز اقتراحاتك بمعلومات واقعية.
-`;
-
-// --- END: Interactive Travel Planner Schemas & Prompts ---
-
-// --- START: Phrase Translator Schemas ---
-
-export const PHRASES_SCHEMA = {
+// Schema for general object/place identification
+export const IDENTIFICATION_SCHEMA = {
     type: Type.OBJECT,
+    description: 'Identifies the main object, building, plant, animal, or place in an image. Provides a name, a detailed description, and optionally an address and Google Maps URL if it is a fixed location.',
     properties: {
-        'languageName': { type: Type.STRING, description: 'The name of the local language (e.g., "Japanese").' },
-        'langCode': { type: Type.STRING, description: 'The BCP-47 language code for text-to-speech (e.g., "ja-JP").' },
-        'categories': {
-            type: Type.ARRAY,
-            description: 'A list of phrase categories.',
-            items: {
-                type: Type.OBJECT,
-                properties: {
-                    'categoryName': { type: Type.STRING, description: 'Category of phrases (e.g., "Greetings", "Shopping").' },
-                    'phrases': {
-                        type: Type.ARRAY,
-                        description: 'A list of phrases in this category.',
-                        items: {
-                            type: Type.OBJECT,
-                            properties: {
-                                'original': { type: Type.STRING, description: 'The phrase in Arabic.' },
-                                'translated': { type: Type.STRING, description: 'The phrase in the local language.' },
-                                'phonetic': { type: Type.STRING, description: 'A simple phonetic pronunciation guide.' }
-                            },
-                            required: ['original', 'translated', 'phonetic']
-                        }
-                    }
-                },
-                required: ['categoryName', 'phrases']
-            }
-        }
+        'name': { type: Type.STRING, description: 'The name of the identified subject.' },
+        'description': { type: Type.STRING, description: 'A detailed description of the subject, including interesting facts, history, or characteristics.' },
+        'address': { type: Type.STRING, description: 'The full street address, only if the subject is a fixed location.' },
+        'googleMapsUrl': { type: Type.STRING, description: 'The Google Maps URL, only if the subject is a fixed location.' }
     },
-    required: ['languageName', 'langCode', 'categories']
+    required: ['name', 'description']
 };
-
-export const TRANSLATED_PHRASE_SCHEMA = {
-    type: Type.OBJECT,
-    properties: {
-        'translated': { type: Type.STRING, description: 'The phrase in the target language.' },
-        'phonetic': { type: Type.STRING, description: 'A simple phonetic pronunciation guide.' }
-    },
-    required: ['translated', 'phonetic']
-};
-
-// --- END: Phrase Translator Schemas ---
-
-// --- START: Traveler's Guide Schema ---
-export const TRAVEL_GUIDE_SCHEMA = {
-    type: Type.OBJECT,
-    properties: {
-        locationInfo: {
-            type: Type.OBJECT,
-            properties: {
-                country: { type: Type.STRING },
-                city: { type: Type.STRING },
-                generalDescription: { type: Type.STRING, description: "A brief, welcoming introduction to the location." }
-            },
-            required: ['country', 'city', 'generalDescription']
-        },
-        entryRequirements: {
-            type: Type.OBJECT,
-            properties: {
-                visaInfo: { type: Type.STRING, description: "Information about visa requirements for most travelers." },
-                customsNotes: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Brief notes on important customs regulations." }
-            },
-            required: ['visaInfo']
-        },
-        gettingAround: {
-            type: Type.OBJECT,
-            properties: {
-                publicTransport: { type: Type.STRING, description: "Details about the main public transport systems (train, bus, metro)." },
-                taxisRideSharing: { type: Type.STRING, description: "Information on taxis and available ride-sharing apps like Uber or local alternatives." },
-                carRental: { type: Type.STRING, description: "Tips and notes about renting a car." }
-            },
-            required: ['publicTransport']
-        },
-        connectivity: {
-            type: Type.OBJECT,
-            properties: {
-                simCards: { type: Type.STRING, description: "Advice on buying local SIM cards or using eSIMs." },
-                wifi: { type: Type.STRING, description: "Information about public Wi-Fi availability." }
-            },
-            required: ['simCards']
-        },
-        money: {
-            type: Type.OBJECT,
-            properties: {
-                currency: { type: Type.STRING, description: "Local currency name, code, and symbol (e.g., 'Swiss Franc (CHF, Fr.)')." },
-                tippingCulture: { type: Type.STRING, description: "Summary of the local tipping etiquette." },
-                budgetTips: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Tips for saving money." }
-            },
-            required: ['currency', 'tippingCulture']
-        },
-        healthAndSafety: {
-            type: Type.OBJECT,
-            properties: {
-                emergencyContacts: {
-                    type: Type.ARRAY,
-                    items: {
-                        type: Type.OBJECT,
-                        properties: {
-                            service: { type: Type.STRING, enum: ['الشرطة', 'الإسعاف', 'الإطفاء', 'الطوارئ العامة'] },
-                            number: { type: Type.STRING },
-                            note: { type: Type.STRING }
-                        },
-                        required: ['service', 'number']
-                    }
-                },
-                healthTips: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Local health advice and notes." },
-                safetyNotes: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Tips on staying safe and avoiding common scams." }
-            },
-            required: ['emergencyContacts', 'healthTips']
-        },
-        localCulture: {
-            type: Type.OBJECT,
-            properties: {
-                etiquette: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Key do's and don'ts of local culture." },
-                helpfulPhrases: {
-                    type: Type.ARRAY,
-                    items: {
-                        type: Type.OBJECT,
-                        properties: {
-                            phrase: { type: Type.STRING, description: "The phrase in Arabic." },
-                            translation: { type: Type.STRING, description: "The phrase in the local language." },
-                            pronunciation: { type: Type.STRING, description: "A simple phonetic pronunciation." }
-                        },
-                        required: ['phrase', 'translation']
-                    }
-                }
-            },
-            required: ['etiquette', 'helpfulPhrases']
-        },
-        muslimTravelerInfo: {
-            type: Type.OBJECT,
-            properties: {
-                prayerTimesLink: { type: Type.STRING, description: "A reliable website link for local prayer times." },
-                halalFoodAvailability: { type: Type.STRING, description: "A summary of how easy it is to find Halal food." },
-                nearbyMosquesSuggestion: { type: Type.STRING, description: "A suggestion on how to find nearby mosques (e.g., 'Use Google Maps and search for 'مسجد'')." }
-            },
-            required: ['halalFoodAvailability', 'nearbyMosquesSuggestion']
-        },
-        practicalInfo: {
-            type: Type.OBJECT,
-            properties: {
-                powerPlugs: { type: Type.STRING, description: "Description of the power plug type and voltage (e.g., 'Type J, 230V')." },
-                drinkingWater: { type: Type.STRING, description: "Information on whether tap water is safe to drink." }
-            },
-            required: ['powerPlugs', 'drinkingWater']
-        }
-    },
-    required: ['locationInfo', 'gettingAround', 'connectivity', 'money', 'healthAndSafety', 'localCulture', 'muslimTravelerInfo', 'practicalInfo']
-};
-// --- END: Traveler's Guide Schema ---
 
 // --- START: Activities Finder Schema ---
 export const ACTIVITY_SCHEMA = {
@@ -453,3 +248,227 @@ export const ACTIVITY_SCHEMA = {
     required: ['activities']
 };
 // --- END: Activities Finder Schema ---
+
+// --- START: Travel Planner Schemas ---
+export const TRIP_FRAMEWORK_SCHEMA = {
+    type: Type.OBJECT,
+    properties: {
+        locationName: { type: Type.STRING, description: 'The city and country of the trip, e.g., "Interlaken, Switzerland".' },
+        framework: {
+            type: Type.ARRAY,
+            description: "A list of steps for a 3-day itinerary.",
+            items: {
+                type: Type.OBJECT,
+                properties: {
+                    timeOfDay: { type: Type.STRING, description: 'The time of day for the activity, e.g., "Day 1: Morning (9 AM - 1 PM)".' },
+                    description: { type: Type.STRING, description: 'A one-sentence description of the suggested activity.' },
+                    activityType: { type: Type.STRING, enum: ['EAT', 'SIGHTSEEING', 'SHOPPING', 'ACTIVITY', 'TRAVEL', 'PRAYER'], description: 'The general category of the activity.' }
+                },
+                required: ['timeOfDay', 'description', 'activityType']
+            }
+        }
+    },
+    required: ['locationName', 'framework']
+};
+
+export const SUGGESTIONS_SCHEMA = {
+    type: Type.OBJECT,
+    properties: {
+        suggestions: {
+            type: Type.ARRAY,
+            description: "A list of 2-3 specific suggestions for the user's trip step.",
+            items: {
+                type: Type.OBJECT,
+                properties: {
+                    name: { type: Type.STRING, description: "The name of the place or activity." },
+                    suggestionDescription: { type: Type.STRING, description: "A brief, compelling description of why this is a good suggestion." },
+                    address: { type: Type.STRING, description: "The full address of the location." },
+                    halalAssurance: { type: Type.STRING, description: "A note on Halal status if applicable (e.g., 'Certified Halal', 'Serves Halal options', 'Muslim-owned'). Omit if not applicable." },
+                    rating: { type: Type.NUMBER, description: "The Google Maps rating, if available." },
+                    userRatingsTotal: { type: Type.NUMBER, description: "The total number of user ratings, if available." },
+                    url: { type: Type.STRING, description: "The Google Maps URL for the location." },
+                },
+                required: ['name', 'suggestionDescription']
+            }
+        }
+    },
+    required: ['suggestions']
+};
+// --- END: Travel Planner Schemas ---
+
+// --- START: Nearby Places Schema ---
+export const NEARBY_PLACES_SCHEMA = {
+    type: Type.OBJECT,
+    properties: {
+        places: {
+            type: Type.ARRAY,
+            description: "A list of interesting places near the user's location.",
+            items: {
+                type: Type.OBJECT,
+                properties: {
+                    name: { type: Type.STRING, description: 'The name of the place.' },
+                    latitude: { type: Type.NUMBER, description: 'The latitude of the place.' },
+                    longitude: { type: Type.NUMBER, description: 'The longitude of the place.' },
+                    category: { type: Type.STRING, enum: ['restaurant', 'cafe', 'sight', 'shop', 'other'], description: 'The category of the place.' },
+                    address: { type: Type.STRING, description: 'The street address of the place.' },
+                    rating: { type: Type.NUMBER, description: 'The Google Maps rating.' },
+                    url: { type: Type.STRING, description: 'The Google Maps URL.' }
+                },
+                required: ['name', 'latitude', 'longitude', 'category']
+            }
+        }
+    },
+    required: ['places']
+};
+// --- END: Nearby Places Schema ---
+
+// --- START: Phrase Translator Schemas ---
+export const PHRASES_SCHEMA = {
+    type: Type.OBJECT,
+    properties: {
+        languageName: { type: Type.STRING, description: 'The name of the local language (e.g., "Japanese").' },
+        langCode: { type: Type.STRING, description: 'The BCP-47 language code for the local language (e.g., "ja-JP").' },
+        categories: {
+            type: Type.ARRAY,
+            items: {
+                type: Type.OBJECT,
+                properties: {
+                    categoryName: { type: Type.STRING, description: 'The category of phrases (e.g., "Greetings", "Shopping").' },
+                    phrases: {
+                        type: Type.ARRAY,
+                        items: {
+                            type: Type.OBJECT,
+                            properties: {
+                                original: { type: Type.STRING, description: 'The phrase in Arabic.' },
+                                translated: { type: Type.STRING, description: 'The translation in the local language.' },
+                                phonetic: { type: Type.STRING, description: 'A simple phonetic pronunciation.' }
+                            },
+                            required: ['original', 'translated', 'phonetic']
+                        }
+                    }
+                },
+                required: ['categoryName', 'phrases']
+            }
+        }
+    },
+    required: ['languageName', 'langCode', 'categories']
+};
+
+export const TRANSLATE_PHRASE_SCHEMA = {
+    type: Type.OBJECT,
+    properties: {
+        translated: { type: Type.STRING, description: 'The translation in the local language.' },
+        phonetic: { type: Type.STRING, description: 'A simple phonetic pronunciation.' }
+    },
+    required: ['translated', 'phonetic']
+};
+// --- END: Phrase Translator Schemas ---
+
+// FIX: Add schema for the comprehensive travel guide.
+// --- START: Travel Guide Schema ---
+export const TRAVEL_GUIDE_SCHEMA = {
+    type: Type.OBJECT,
+    properties: {
+        locationInfo: {
+            type: Type.OBJECT,
+            properties: {
+                city: { type: Type.STRING },
+                country: { type: Type.STRING },
+                generalDescription: { type: Type.STRING, description: "A brief, engaging overview of the location." }
+            },
+            required: ['city', 'country', 'generalDescription']
+        },
+        entryRequirements: {
+            type: Type.OBJECT,
+            properties: {
+                visaInfo: { type: Type.STRING, description: "Visa requirements for typical tourists." },
+                customsNotes: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Important customs declarations or rules." }
+            },
+            required: ['visaInfo']
+        },
+        gettingAround: {
+            type: Type.OBJECT,
+            properties: {
+                publicTransport: { type: Type.STRING, description: "Information on local public transport." },
+                taxisRideSharing: { type: Type.STRING, description: "Details about taxis and ride-sharing services." },
+                carRental: { type: Type.STRING, description: "Advice on renting a car." }
+            },
+            required: ['publicTransport']
+        },
+        money: {
+            type: Type.OBJECT,
+            properties: {
+                currency: { type: Type.STRING, description: "Local currency, exchange rates, and ATM availability." },
+                tippingCulture: { type: Type.STRING, description: "Local customs regarding tipping." },
+                budgetTips: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Tips for saving money." }
+            },
+            required: ['currency', 'tippingCulture']
+        },
+        connectivity: {
+            type: Type.OBJECT,
+            properties: {
+                simCards: { type: Type.STRING, description: "Information on buying local SIM cards." },
+                wifi: { type: Type.STRING, description: "Availability of public Wi-Fi." }
+            },
+            required: ['simCards']
+        },
+        healthAndSafety: {
+            type: Type.OBJECT,
+            properties: {
+                emergencyContacts: {
+                    type: Type.ARRAY,
+                    items: {
+                        type: Type.OBJECT,
+                        properties: {
+                            service: { type: Type.STRING },
+                            number: { type: Type.STRING },
+                            note: { type: Type.STRING }
+                        },
+                        required: ['service', 'number']
+                    }
+                },
+                healthTips: { type: Type.ARRAY, items: { type: Type.STRING } },
+                safetyNotes: { type: Type.ARRAY, items: { type: Type.STRING } }
+            },
+            required: ['emergencyContacts', 'healthTips']
+        },
+        localCulture: {
+            type: Type.OBJECT,
+            properties: {
+                etiquette: { type: Type.ARRAY, items: { type: Type.STRING } },
+                helpfulPhrases: {
+                    type: Type.ARRAY,
+                    items: {
+                        type: Type.OBJECT,
+                        properties: {
+                            phrase: { type: Type.STRING },
+                            translation: { type: Type.STRING },
+                            pronunciation: { type: Type.STRING }
+                        },
+                        required: ['phrase', 'translation', 'pronunciation']
+                    }
+                }
+            },
+            required: ['etiquette', 'helpfulPhrases']
+        },
+        muslimTravelerInfo: {
+            type: Type.OBJECT,
+            properties: {
+                halalFoodAvailability: { type: Type.STRING },
+                nearbyMosquesSuggestion: { type: Type.STRING },
+                prayerTimesLink: { type: Type.STRING }
+            },
+            required: ['halalFoodAvailability', 'nearbyMosquesSuggestion']
+        },
+        practicalInfo: {
+            type: Type.OBJECT,
+            properties: {
+                powerPlugs: { type: Type.STRING, description: "Type of electrical outlets and voltage." },
+                drinkingWater: { type: Type.STRING, description: "Information on tap water safety." }
+            },
+            required: ['powerPlugs', 'drinkingWater']
+        }
+    },
+    required: ['locationInfo', 'gettingAround', 'money', 'connectivity', 'healthAndSafety', 'localCulture', 'muslimTravelerInfo', 'practicalInfo']
+};
+// --- END: Travel Guide Schema ---
