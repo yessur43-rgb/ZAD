@@ -1,6 +1,6 @@
 {
-  "name": "Halal Compliance AI",
-  "description": "An AI-powered application to check the Halal status of food products from images and verify Halal compliance for restaurants. Users can upload images for analysis or chat with an AI to inquire about restaurants.",
+  "name": "زاد | Zad",
+  "description": "زاد: دليلك الإسلامي الذكي للسفر. ابحث عن الأماكن الحلال، حلل المنتجات، وخطط لرحلتك بكل سهولة.",
   "requestFramePermissions": [
     "camera",
     "geolocation"

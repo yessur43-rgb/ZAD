@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { CameraIcon } from './icons/CameraIcon';
 import { LocationMarkerIcon } from './icons/LocationMarkerIcon';
-import { HalalIcon } from './icons/HalalIcon';
+import { AppIcon } from './icons/AppIcon';
 
 interface PermissionGateProps {
   onComplete: () => void;
@@ -45,7 +45,7 @@ const PermissionGate: React.FC<PermissionGateProps> = ({ onComplete }) => {
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex items-center justify-center p-4" dir="rtl">
       <div className="w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6 md:p-8 text-center animate-fade-in">
-        <HalalIcon className="w-16 h-16 text-emerald-500 mx-auto mb-4" />
+        <AppIcon className="w-16 h-16 text-emerald-500 mx-auto mb-4" />
         <h1 className="text-2xl font-bold text-gray-800 dark:text-white">أذونات مطلوبة لتجربة أفضل</h1>
         <p className="mt-2 text-gray-600 dark:text-gray-400">
           للاستفادة من جميع الميزات، يحتاج التطبيق إلى الوصول إلى الكاميرا والموقع الجغرافي.

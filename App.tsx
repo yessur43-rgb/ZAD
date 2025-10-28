@@ -13,10 +13,10 @@ import { FindItIcon } from './components/icons/FindItIcon';
 import FindIt from './components/FindIt';
 import { MenuIcon } from './components/icons/MenuIcon';
 import MenuAnalyzer from './components/MenuAnalyzer';
-import { HalalIcon } from './components/icons/HalalIcon';
 import PermissionGate from './components/PermissionGate';
 import { ActivityIcon } from './components/icons/ActivityIcon';
 import ActivitiesFinder from './components/ActivitiesFinder';
+import { AppIcon } from './components/icons/AppIcon';
 
 type View = 'tools' | 'history';
 const views: View[] = ['tools', 'history'];
@@ -78,9 +78,9 @@ const App: React.FC = () => {
   if (isLoadingApp) {
     return (
       <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex flex-col items-center justify-center text-center p-4">
-        <HalalIcon className="w-24 h-24 text-emerald-500 animate-pulse mb-4" />
-        <h1 className="text-3xl font-bold text-gray-800 dark:text-white">رفيق السفر</h1>
-        <p className="text-gray-600 dark:text-gray-400 mt-2">The Muslim Traveler's Companion</p>
+        <AppIcon className="w-24 h-24 text-emerald-500 animate-pulse mb-4" />
+        <h1 className="text-3xl font-bold text-gray-800 dark:text-white">زاد</h1>
+        <p className="text-gray-600 dark:text-gray-400 mt-2">zad</p>
       </div>
     );
   }
