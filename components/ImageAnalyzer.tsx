@@ -6,7 +6,8 @@ import { LoadingSpinner } from './icons/LoadingSpinner';
 import { CameraIcon } from './icons/CameraIcon';
 import { BarcodeIcon } from './icons/BarcodeIcon';
 import BarcodeScanner from './BarcodeScanner';
-import { saveScanToHistory } from '../utils/storage';
+// FIX: Import function to save analysis results to history.
+import { saveScanHistoryItem } from '../utils/storage';
 
 const ImageAnalyzer: React.FC = () => {
   const [image, setImage] = useState<string | null>(null);
@@ -43,10 +44,11 @@ const ImageAnalyzer: React.FC = () => {
       const base64Data = image.split(',')[1];
       const analysisResult = await analyzeImage(base64Data, imageFile.type);
       setResult(analysisResult);
-      saveScanToHistory({
+      // FIX: Save successful image analysis to history.
+      saveScanHistoryItem({
         type: 'image',
         identifier: imageFile.name,
-        result: analysisResult
+        result: analysisResult,
       });
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.';
@@ -68,9 +70,10 @@ const ImageAnalyzer: React.FC = () => {
     try {
         const analysisResult = await analyzeBarcode(barcode);
         setResult(analysisResult);
-        saveScanToHistory({
+        // FIX: Save successful barcode analysis to history.
+        saveScanHistoryItem({
             type: 'barcode',
-            identifier: `باركود: ${barcode}`,
+            identifier: barcode,
             result: analysisResult
         });
     } catch(err) {

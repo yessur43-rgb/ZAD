@@ -119,11 +119,11 @@ export const analyzeBarcode = async (barcode: string): Promise<GeminiResponse> =
     return parseJsonResponse<GeminiResponse>(jsonResponse.text, 'BarcodeAnalysis');
 };
 
-const menuSystemInstruction = "أنت خبير دقيق في الطعام الحلال. مهمتك هي تحليل صورة قائمة الطعام وتصنيف العناصر. قدم ملاحظات واضحة وقابلة للتنفيذ للعناصر المشبوهة أو الحرام لمساعدة المستخدم المسلم على اتخاذ قرار مستنير. لا تدرج عناصر غير غذائية مثل 'ماء' أو 'بيبسي'.";
+const menuSystemInstruction = "أنت خبير في الطعام الحلال ومحلل قوائم طعام ذكي. مهمتك هي تحليل صورة قائمة الطعام بعمق، مع التركيز الشديد على الأطباق الرئيسية والمقبلات والحلويات. تجاهل المشروبات البسيطة والواضحة مثل الماء، الشاي، القهوة، والمشروبات الغازية ما لم تكن تحتوي على إضافات مشبوهة. هدفك هو مساعدة المستخدم المسلم على اتخاذ قرارات مستنيرة بشأن الوجبات المعقدة. لكل طبق، قدم تقييمًا واضحًا: 'حلال'، 'مشكوك فيه'، أو 'حرام'. للعناصر المشكوك فيها، قدم نصيحة عملية (مثال: 'اسأل عن مصدر اللحم' أو 'تأكد من خلو الصلصة من الكحول').";
 
 export const analyzeMenuImage = async (base64Data: string, mimeType: string): Promise<HalalHaramListResponse> => {
   const imagePart = { inlineData: { data: base64Data, mimeType } };
-  const textPart = { text: 'حلل صورة قائمة الطعام هذه. حدد العناصر الحلال بشكل واضح والعناصر التي قد تكون حراماً أو مشبوهة. لكل عنصر مشبوه، قدم ملاحظة تشرح السبب (مثل "قد يحتوي على كحول" أو "تحقق مما إذا كان اللحم حلالاً"). استبعد المشروبات الغازية والمياه الواضحة. يجب أن تكون الإجابة بتنسيق JSON حصرياً باللغة العربية.' };
+  const textPart = { text: 'حلل صورة قائمة الطعام هذه. تجاهل المشروبات البديهية مثل الماء والشاي والقهوة. ركز على الأطباق الرئيسية والمقبلات والحلويات. حدد العناصر الحلال بشكل واضح، والعناصر التي قد تكون حراماً أو مشبوهة. لكل عنصر مشبوه، اشرح السبب وقدم سؤالاً محدداً يمكن للمستخدم طرحه على النادل. يجب أن تكون الإجابة بتنسيق JSON حصرياً باللغة العربية.' };
   
   const response = await ai.models.generateContent({
     model: 'gemini-2.5-pro',
@@ -167,7 +167,7 @@ export const findPlaces = async (
               } : undefined
             }
         },
-        systemInstruction: 'أنت مساعد جغرافي متخصص في إيجاد الأماكن. أجب على المستخدم بإيجاز ثم اعتمد على أداة الخرائط لتوفير النتائج. إذا لم يتم تحديد موقع، اطلب من المستخدم تحديد مدينة. قم دائمًا بتضمين معلومات المسافة إن أمكن.'
+        systemInstruction: 'أنت مساعد جغرافي متخصص في إيجاد الأماكن. عند البحث عن أماكن عبادة إسلامية مثل "مساجد"، تأكد من استبعاد الكنائس والمعابد الأخرى. أجب على المستخدم بإيجاز ثم اعتمد على أداة الخرائط لتوفير النتائج. إذا لم يتم تحديد موقع، اطلب من المستخدم تحديد مدينة. قم دائمًا بتضمين معلومات المسافة إن أمكن.'
     });
 
     const places: Place[] = [];
@@ -182,6 +182,36 @@ export const findPlaces = async (
     
     return { text: response.text, places };
 };
+
+export const findPlacesOnRoute = async (
+    start: string,
+    destination: string,
+    query: string
+): Promise<{ text: string; places: Place[] }> => {
+    const fullQuery = `اعرض لي ${query} في الطريق من "${start}" إلى "${destination}".`;
+    
+    const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: [{ role: 'user', parts: [{text: fullQuery}]}],
+        config: {
+            tools: [{googleMaps: {}}],
+        },
+        systemInstruction: 'أنت مساعد سفر متخصص في إيجاد محطات توقف مناسبة على طول طريق القيادة. عند البحث عن أماكن عبادة إسلامية مثل "مساجد"، تأكد من استبعاد الكنائس والمعابد الأخرى. أنت تستخدم أداة الخرائط للعثور على مواقع حقيقية. أعط الأولوية للمواقع التي تتطلب الحد الأدنى من الانحراف عن المسار، والتي يمكن الوصول إليها مباشرة بالسيارة دون الحاجة إلى وسائل نقل خاصة مثل التلفريك أو القطارات الجبلية. قدم ردًا موجزًا متبوعًا بقائمة الأماكن من الأداة.'
+    });
+
+    const places: Place[] = [];
+    const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
+    if (groundingChunks) {
+        for (const chunk of groundingChunks) {
+            if (chunk.maps) {
+                places.push(mapGeminiPlaceToPlace(chunk.maps));
+            }
+        }
+    }
+    
+    return { text: response.text, places };
+};
+
 
 export const getIngredientInfo = async (ingredient: string): Promise<string> => {
     const prompt = `قدم شرحاً مفصلاً عن المكون التالي: "${ingredient}". وضح مصدره الشائع (حيواني، نباتي، صناعي)، استخداماته، وحكمه الشرعي في الإسلام مع ذكر أي خلافات بين الفقهاء إن وجدت. اجعل الإجابة واضحة ومباشرة.`;
@@ -236,7 +266,7 @@ export const getHalalDishes = async (restaurantName: string): Promise<DishSugges
 };
 
 export const getHalalHaramList = async (place: Place): Promise<HalalHaramListResponse> => {
-    const searchPrompt = `Find the menu or typical food and drink offerings for "${place.name}" located at "${place.address || ''}". Focus on ingredients that might be a concern for Muslims, like alcohol, pork derivatives, and non-halal meat.`;
+    const searchPrompt = `ابحث عن قائمة الطعام أو المأكولات والمشروبات المعتادة في "${place.name}" الموجود في "${place.address || ''}".`;
 
     const searchResponse = await ai.models.generateContent({
         model: 'gemini-2.5-pro',
@@ -254,11 +284,11 @@ export const getHalalHaramList = async (place: Place): Promise<HalalHaramListRes
         ? `بناءً على معلومات من: ${sources.slice(0, 2).join(', ')}`
         : 'لم يتم العثور على قائمة طعام رسمية، الاقتراحات مبنية على تحليل عام.';
 
-    const formatPrompt = `Based on the following information about "${place.name}": "${context}", analyze its menu.
-    Create two lists in JSON format:
-    1. 'halalItems': A list of items that are generally considered Halal (e.g., coffee, tea, seafood). Include a brief note.
-    2. 'haramOrMushboohItems': A list of items that are potentially Haram or Mushbooh (doubtful). For each item, provide a clear 'note' explaining the potential issue (e.g., "Croissants: May contain lard instead of butter", "Tiramisu: Often contains alcohol", "Vanilla Extract: May be alcohol-based").
-    If no specific menu is found, base your analysis on typical offerings for that type of establishment (e.g., a European café).`;
+    const formatPrompt = `بناءً على المعلومات التالية حول "${place.name}": "${context}", قم بتحليل قائمته.
+    أنشئ قائمتين بتنسيق JSON:
+    1. 'halalItems': قائمة بالعناصر التي تعتبر حلال بشكل عام.
+    2. 'haramOrMushboohItems': قائمة بالعناصر التي قد تكون حرامًا أو مشبوهة. لكل عنصر، قدم 'ملاحظة' واضحة تشرح المشكلة المحتملة وتقدم سؤالاً لطرحه (مثال: "تيراميسو: غالبًا ما يحتوي على كحول، اسأل: هل التيراميسو خالٍ من الكحول؟").
+    إذا لم يتم العثور على قائمة محددة، فابنِ تحليلك على العروض المعتادة لهذا النوع من المنشآت.`;
 
     const jsonResponse = await ai.models.generateContent({
         model: 'gemini-2.5-flash',
@@ -267,7 +297,7 @@ export const getHalalHaramList = async (place: Place): Promise<HalalHaramListRes
             responseMimeType: "application/json",
             responseSchema: HALAL_HARAM_LIST_SCHEMA
         },
-        systemInstruction: "You are a meticulous Halal food investigator. Your task is to analyze the menu or common products of a food establishment and classify them for a Muslim user, providing clear, actionable advice."
+        systemInstruction: "أنت محقق دقيق في الأطعمة الحلال. مهمتك هي تحليل قائمة الطعام أو المنتجات الشائعة لمؤسسة غذائية. ركز على الأطباق الرئيسية والمكونات المعقدة. تجاهل المشروبات البسيطة والواضحة مثل الماء، الشاي، والقهوة. هدفك هو تصنيف العناصر لمستخدم مسلم وتقديم نصائح واضحة وعملية."
     });
 
     const result = parseJsonResponse<HalalHaramListResponse>(jsonResponse.text, 'HalalHaramList');
@@ -277,287 +307,193 @@ export const getHalalHaramList = async (place: Place): Promise<HalalHaramListRes
 };
 
 export const findParkingForPlace = async (place: Place): Promise<ParkingSuggestionResponse> => {
-    const searchPrompt = `ابحث عن أفضل 2-3 خيارات لمواقف السيارات بالقرب من "${place.name}" في "${place.address || ''}". اذكر اسم الموقف، عنوانه الكامل، رابط خرائط جوجل، المسافة، تفاصيل الأسعار، وأي ملاحظات.`;
-
-    // Step 1: Get information using Google Maps
-    const searchResponse = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
+    const searchPrompt = `ابحث عن أفضل 2-3 خيارات لمواقف السيارات بالقرب من "${place.name}" في "${place.address || ''}". اذكر اسم الموقف، عنوانه الكامل، رابط خرائط جوجل، المسافة، تفاصيل الأسعار، وأي ملاحظات. أجب بتنسيق JSON حصرياً باللغة العربية بناءً على مخطط PARKING_INFO_SCHEMA.`;
+    
+    const response = await ai.models.generateContent({
+        model: "gemini-2.5-pro",
         contents: searchPrompt,
         config: {
-            tools: [{googleMaps: {}}],
-            toolConfig: {
-                retrievalConfig: place.location ? {
-                    latLng: {
-                        latitude: place.location.latitude,
-                        longitude: place.location.longitude
-                    }
-                } : undefined
-            }
-        },
-        systemInstruction: 'أنت مساعد متخصص في إيجاد مواقف السيارات باستخدام خرائط جوجل.'
+            tools: [{googleSearch: {}}],
+        }
     });
 
-    const context = searchResponse.text;
-
-    // Step 2: Format the gathered information as JSON
-    const formatPrompt = `بناءً على معلومات الخرائط التالية: "${context}", استخرج 2-3 من أفضل خيارات المواقف. لكل خيار، قدم اسم الموقف، عنوانه الكامل، رابط خرائط جوجل، مسافة المشي إلى المطعم، تفاصيل الأسعار، نوع الموقف، وأي ملاحظات مفيدة. أجب بتنسيق JSON حصرياً باللغة العربية.`;
-
-    const jsonResponse = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: formatPrompt,
-        config: {
-            responseMimeType: "application/json",
-            responseSchema: PARKING_INFO_SCHEMA,
-        },
-        systemInstruction: 'أنت مساعد مفيد يجد معلومات مواقف السيارات للمستخدمين. يجب عليك تقديم تفاصيل عملية ودقيقة باللغة العربية.'
-    });
-
-    return parseJsonResponse<ParkingSuggestionResponse>(jsonResponse.text, 'ParkingSuggestion');
+    return parseJsonResponse<ParkingSuggestionResponse>(response.text, 'ParkingInfo');
 };
 
-const findProduct = async (
-  content: GenerateContentResponse['request']['contents'],
-  location: { latitude: number; longitude: number }
-): Promise<FindItResponse> => {
-    // Step 1: Identify product and find potential stores using Google Maps/Search.
-    const searchResponse = await ai.models.generateContent({
-        model: 'gemini-2.5-pro',
-        contents: content,
+export const findProductInStores = async (base64Data: string, mimeType: string, location: { latitude: number; longitude: number }): Promise<FindItResponse> => {
+    const imagePart = { inlineData: { data: base64Data, mimeType } };
+    const textPart1 = { text: 'ما هو اسم المنتج في هذه الصورة؟ أجب باسم المنتج فقط.' };
+    
+    const nameResponse = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: { parts: [imagePart, textPart1] }
+    });
+    
+    const productName = nameResponse.text.trim();
+
+    if (!productName) {
+        throw new Error('لم نتمكن من التعرف على المنتج في الصورة.');
+    }
+    
+    const searchResult = await findProductInStoresByText(productName, location);
+
+    return { ...searchResult, identifiedProduct: productName };
+};
+
+export const findProductInStoresByText = async (productName: string, location: { latitude: number; longitude: number }): Promise<FindItResponse> => {
+    const searchPrompt = `ابحث عن متاجر أو محلات سوبر ماركت بالقرب مني تبيع المنتج التالي: "${productName}".`;
+    
+    const placesResponse = await findPlaces([], searchPrompt, location);
+    
+    const responseText = `وجدت لك هذا المنتج "${productName}" وقد يكون متوفراً في الأماكن التالية:`;
+    
+    return {
+        identifiedProduct: productName,
+        aiResponseText: responseText,
+        places: placesResponse.places
+    };
+};
+
+export const findVignetteInfo = async (country: string): Promise<VignetteDetailsResponse> => {
+    const prompt = `أحتاج معلومات مفصلة حول استيكر العبور (Vignette) لدولة "${country}". أريد معرفة الأسعار، فترات الصلاحية، أماكن الشراء، ملاحظات هامة، والموقع الرسمي للشراء إن وجد. قدم نصائح محددة للمسافرين القادمين بالسيارة من الدول المجاورة. أجب بتنسيق JSON حصرياً باللغة العربية بناءً على مخطط VIGNETTE_INFO_SCHEMA.`;
+    const response = await ai.models.generateContent({
+        model: "gemini-2.5-pro",
+        contents: prompt,
         config: {
-            tools: [{ googleMaps: {}, googleSearch: {} }],
-            toolConfig: {
+            tools: [{googleSearch: {}}],
+        }
+    });
+    const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
+    const sources = groundingChunks
+        ?.filter(c => c.web)
+        .map(c => ({ title: c.web!.title, uri: c.web!.uri })) || [];
+
+    const result = parseJsonResponse<VignetteDetailsResponse>(response.text, 'VignetteInfo');
+    result.sources = sources;
+    return result;
+};
+
+
+export const identifyObjectOrPlace = async (base64Data: string, mimeType: string): Promise<IdentificationResponse> => {
+    const imagePart = { inlineData: { data: base64Data, mimeType } };
+    const textPart = { text: 'تعرف على هذا الشيء أو المكان في الصورة. قدم اسمًا، وصفًا تفصيليًا، وإذا كان مكانًا ثابتًا، فاذكر العنوان ورابط خرائط جوجل. يجب أن تكون الإجابة بتنسيق JSON حصريًا باللغة العربية بناءً على مخطط IDENTIFICATION_SCHEMA.' };
+    
+    const response = await ai.models.generateContent({
+        model: 'gemini-2.5-pro',
+        contents: { parts: [imagePart, textPart] },
+        config: {
+            tools: [{googleSearch: {}}]
+        },
+        systemInstruction: 'أنت خبير في التعرف على الصور، قادر على تحديد المعالم، المباني، النباتات، الحيوانات، أو أي شيء آخر بدقة عالية وتقديم معلومات مفيدة عنه.'
+    });
+
+    return parseJsonResponse<IdentificationResponse>(response.text, 'Identification');
+};
+
+
+export const findActivities = async (location: { latitude: number; longitude: number } | string, query?: string): Promise<Activity[]> => {
+    const locationString = typeof location === 'string'
+        ? `في ${location}`
+        : `بالقرب مني`;
+
+    const fullQuery = `ابحث عن أنشطة عائلية وترفيهية ${query ? `متعلقة بـ "${query}"` : ''} ${locationString}. أجب بتنسيق JSON حصرياً باللغة العربية بناءً على مخطط ACTIVITY_SCHEMA. يجب أن تكون أسماء الأيام بالعربية.`;
+
+    const now = new Date();
+    const localTime = now.toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit', hour12: true });
+    const localDay = now.toLocaleDateString('ar-SA', { weekday: 'long' });
+
+    const systemInstruction = `أنت مساعد سفر خبير في إيجاد الأنشطة. مهمتك هي العثور على أنشطة بناءً على طلب المستخدم. عند البحث عن أماكن عبادة إسلامية مثل "مساجد"، تأكد من استبعاد الكنائس والمعابد الأخرى. قم بتضمين الحالة التشغيلية الحالية (مفتوح، يغلق قريباً، مغلق) بناءً على ساعات العمل والوقت الحالي المفترض: ${localDay}، ${localTime}. استخدم دائمًا أداة خرائط جوجل للعثور على أماكن حقيقية.`;
+
+    const response = await ai.models.generateContent({
+        model: "gemini-2.5-pro",
+        contents: fullQuery,
+        config: {
+            tools: [{ googleMaps: {} }],
+            toolConfig: typeof location !== 'string' ? {
                 retrievalConfig: {
                     latLng: {
                         latitude: location.latitude,
                         longitude: location.longitude
                     }
                 }
-            }
+            } : undefined
         },
-        systemInstruction: 'أنت مساعد تسوق خبير. مهمتك الأولى هي تحديد المنتج بدقة من الصورة أو النص. مهمتك الثانية هي العثور على مواقع بيع بالتجزئة مثل السوبر ماركت أو البقالات أو المتاجر الصغيرة القريبة من موقع المستخدم والتي من المحتمل أن تبيع هذا المنتج. أعط الأولوية للنتائج المحلية وتجنب مقرات الشركات أو الموزعين.'
+        systemInstruction: systemInstruction,
     });
+    
+    const result = parseJsonResponse<ActivityResponse>(response.text, 'Activities');
 
-    const contextText = searchResponse.text;
-    const places: Place[] = [];
-    const groundingChunks = searchResponse.candidates?.[0]?.groundingMetadata?.groundingChunks;
+    const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
     if (groundingChunks) {
-        for (const chunk of groundingChunks) {
-            if (chunk.maps) {
-                places.push(mapGeminiPlaceToPlace(chunk.maps));
+        result.activities.forEach(activity => {
+            const match = groundingChunks.find(c => c.maps?.title.includes(activity.name.split(' ')[0]));
+            if (match?.maps) {
+                const place = mapGeminiPlaceToPlace(match.maps);
+                activity.url = place.url;
+                activity.location = place.location;
             }
-        }
+        });
     }
-    
-    // Step 2: Format the gathered information into the required JSON structure.
-    const formatPrompt = `بناءً على المحتوى الأصلي للمستخدم والمعلومات التي تم العثور عليها: "${contextText}", استخرج اسم المنتج المحدد بوضوح وأنشئ نصًا تمهيديًا ودودًا مثل "وجدت لك هذا المنتج وقد يكون متوفراً في الأماكن التالية:". أجب بتنسيق JSON.`;
-    
-    const jsonResponse = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: [{ role: 'user', parts: [{ text: formatPrompt }]}],
-        config: {
-            responseMimeType: "application/json",
-            responseSchema: FIND_PRODUCT_SCHEMA,
-        },
-        systemInstruction: 'أنت مساعد يقوم بتنسيق البيانات. استخرج اسم المنتج من السياق وأنشئ نصًا تمهيديًا.'
-    });
 
-    const result = parseJsonResponse<Omit<FindItResponse, 'places'>>(jsonResponse.text, 'FindProduct');
-
-    return { ...result, places };
+    return result.activities;
 };
 
-export const findProductInStores = async (
-    base64Data: string, 
-    mimeType: string, 
-    location: { latitude: number; longitude: number }
-): Promise<FindItResponse> => {
-    const imagePart = { inlineData: { data: base64Data, mimeType } };
-    const textPart = { text: 'حدد هذا المنتج ثم ابحث عن أماكن مثل السوبر ماركت أو البقالات القريبة مني التي تبيعه. ركز على نتائج التجزئة المحلية.' };
-    const content = [{ role: 'user', parts: [imagePart, textPart] }];
-    return findProduct(content, location);
-};
 
-export const findProductInStoresByText = async (
-    productName: string,
-    location: { latitude: number; longitude: number }
-): Promise<FindItResponse> => {
-    const content = [{ role: 'user', parts: [{ text: `ابحث عن أماكن مثل السوبر ماركت أو البقالات القريبة مني التي تبيع منتج "${productName}". ركز على نتائج التجزئة المحلية.` }] }];
-    return findProduct(content, location);
-};
-
-export const findVignetteInfo = async (country: string): Promise<VignetteDetailsResponse> => {
-    const searchPrompt = `ابحث عن أحدث المعلومات حول استيكر العبور (vignette) لدولة "${country}" لعام ${new Date().getFullYear()}. أحتاج إلى تفاصيل حول الأسعار، الصلاحيات، أماكن الشراء (خاصة عند نقاط الحدود مع الدول المجاورة)، الموقع الرسمي للشراء عبر الإنترنت، وأي ملاحظات هامة للمسافرين بالسيارة.`;
-
-    // Step 1: Get information using Google Search
-    const searchResponse = await ai.models.generateContent({
-        model: 'gemini-2.5-pro',
-        contents: searchPrompt,
-        config: {
-            tools: [{ googleSearch: {} }]
-        },
-        systemInstruction: 'أنت مساعد بحث متخصص في لوائح السفر بالسيارات في أوروبا.'
-    });
-
-    const context = searchResponse.text;
-    const sources = searchResponse.candidates?.[0]?.groundingMetadata?.groundingChunks
-        ?.filter(c => c.web && c.web.uri && c.web.title)
-        .map(c => ({ title: c.web!.title!, uri: c.web!.uri! })) || [];
-
-    // Step 2: Format the gathered information as JSON
-    const formatPrompt = `بناءً على المعلومات التالية عن استيكر العبور في "${country}": "${context}", قم بتنظيم البيانات بتنسيق JSON. تأكد من أن جميع الحقول المطلوبة ممتلئة بمعلومات دقيقة ومفصلة.`;
-
-    const jsonResponse = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: formatPrompt,
-        config: {
-            responseMimeType: "application/json",
-            responseSchema: VIGNETTE_INFO_SCHEMA
-        },
-        systemInstruction: 'أنت مساعد يقوم بتنسيق بيانات السفر إلى JSON منظم.'
-    });
-
-    const result = parseJsonResponse<{details: VignetteDetailsResponse['details']}>(jsonResponse.text, 'VignetteInfo');
-    
-    return { ...result, sources };
-};
-
-export const identifyObjectOrPlace = async (base64Data: string, mimeType: string): Promise<IdentificationResponse> => {
-    const imagePart = { inlineData: { data: base64Data, mimeType } };
-    const textPart = { text: 'Identify the main subject (object, building, plant, animal, place, etc.) in this image. Provide its name and a detailed description. If the subject is a fixed location (like a building or park), provide its full address and a Google Maps URL. If it\'s not a fixed location (like a car or an animal), you can omit the address and URL. Respond in JSON format in Arabic.' };
-
-    const response = await ai.models.generateContent({
-        model: 'gemini-2.5-pro',
-        contents: { parts: [imagePart, textPart] },
-        config: {
-            responseMimeType: "application/json",
-            responseSchema: IDENTIFICATION_SCHEMA,
-        },
-        systemInstruction: 'You are a universal identification expert. Your task is to accurately identify the subject of an image—be it a place, an object, a plant, or an animal—and provide comprehensive, well-structured information about it in Arabic.',
-    });
-
-    return parseJsonResponse<IdentificationResponse>(response.text, 'Identification');
-};
-
-// --- START: Activities Finder Function ---
-export const findActivities = async (location: { latitude: number; longitude: number } | string, query?: string): Promise<Activity[]> => {
-    const searchInstruction = query 
-        ? `ابحث عن أنشطة ومعالم سياحية تطابق "${query}"`
-        : 'ابحث عن مجموعة متنوعة من الأنشطة والمعالم السياحية المناسبة للعائلات';
-
-    const locationInstruction = typeof location === 'string'
-        ? `في "${location}".`
-        : 'بالقرب من هذا الموقع.';
-        
-    const searchPrompt = `${searchInstruction} ${locationInstruction}. ابحث عن تفاصيل كاملة لكل نشاط، بما في ذلك الاسم، الوصف، الفئة، العنوان، السعر، ساعات العمل للأسبوع بأكمله، الحالة الحالية (مفتوح/مغلق)، ورابط خرائط جوجل. استخدم بحث جوجل وخرائط جوجل لضمان دقة المعلومات وحداثتها.`;
-
-    // Step 1: Gather information
-    const searchResponse = await ai.models.generateContent({
-        model: 'gemini-2.5-pro',
-        contents: searchPrompt,
-        config: {
-            tools: [{ googleMaps: {}, googleSearch: {} }],
-            toolConfig: typeof location !== 'string' ? {
-              retrievalConfig: {
-                latLng: {
-                  latitude: location.latitude,
-                  longitude: location.longitude
-                }
-              }
-            } : undefined,
-        },
-        systemInstruction: 'أنت مساعد سفر متخصص في العثور على أنشطة محلية ممتعة. مهمتك هي توفير معلومات دقيقة ومحدثة بناءً على بحث المستخدم وموقعه.'
-    });
-
-    const context = searchResponse.text;
-    const groundingChunks = searchResponse.candidates?.[0]?.groundingMetadata?.groundingChunks;
-
-    // Step 2: Format into JSON
-    const formatPrompt = `بناءً على المعلومات التالية:\n\n${context}\n\nقم بتنسيق هذه المعلومات في كائن JSON وفقًا للمخطط المقدم. يجب أن يكون JSON باللغة العربية. بالنسبة لـ operatingHours، قم بإنشاء كائن بأسماء أيام الأسبوع العربية كمفاتيح. تأكد من ملء جميع الحقول بدقة. قم بإرجاع قائمة متنوعة من الأنشطة حتى لو كانت مغلقة حالياً، مع توضيح ساعات عملها.`;
-    
-    const jsonResponse = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: formatPrompt,
-        config: {
-            responseMimeType: "application/json",
-            responseSchema: ACTIVITY_SCHEMA,
-        },
-        systemInstruction: 'أنت مساعد يقوم بتنسيق بيانات الأنشطة السياحية إلى JSON منظم باللغة العربية.'
-    });
-
-    const result = parseJsonResponse<ActivityResponse>(jsonResponse.text, 'ActivitiesFinder');
-
-    if (!result || !Array.isArray(result.activities)) {
-        console.warn("ActivitiesFinder did not return a valid activities array.", result);
-        return [];
-    }
-    
-    // Enrich with location data from grounding chunks if available
-    const enrichedActivities = result.activities.map(activity => {
-        const relevantPlaceChunk = groundingChunks?.find(chunk => 
-            chunk.maps && activity.name.toLowerCase().includes(chunk.maps.title.toLowerCase())
-        )?.maps;
-        
-        if (relevantPlaceChunk && relevantPlaceChunk.placeAnswerSources?.[0]?.latLng) {
-            return {
-                ...activity,
-                location: {
-                    latitude: relevantPlaceChunk.placeAnswerSources[0].latLng.latitude,
-                    longitude: relevantPlaceChunk.placeAnswerSources[0].latLng.longitude
-                },
-                url: activity.url || relevantPlaceChunk.uri // Prefer AI url but fallback to grounding
-            };
-        }
-        return activity;
-    });
-
-    return enrichedActivities;
-};
-// --- END: Activities Finder Function ---
-
-// --- START: Travel Planner Functions ---
+// --- Travel Planner Functions ---
 export const generateTripFramework = async (destination: string): Promise<ItineraryPlan> => {
-    const prompt = `Create a flexible 3-day travel itinerary framework for a Muslim family visiting "${destination}". The framework should include a mix of activities like sightseeing, eating, and prayer times. Focus on general activity types, not specific places. The response must be a JSON object.`;
+    const prompt = `أنشئ إطارًا مقترحًا لرحلة سياحية عائلية لمدة 3 أيام إلى "${destination}". يجب أن يكون الإطار مقسمًا إلى فترات (صباح، بعد الظهر، مساء) لكل يوم، مع وصف من سطر واحد لكل نشاط، وتحديد نوع النشاط (EAT, SIGHTSEEING, SHOPPING, ACTIVITY, TRAVEL, PRAYER).`;
 
     const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash',
         contents: prompt,
         config: {
-            responseMimeType: "application/json",
-            responseSchema: TRIP_FRAMEWORK_SCHEMA,
+            responseMimeType: 'application/json',
+            responseSchema: TRIP_FRAMEWORK_SCHEMA
         },
-        systemInstruction: "You are a helpful travel assistant for Muslim families. Create structured, high-level itinerary frameworks in JSON format."
+        systemInstruction: 'أنت خبير في تخطيط الرحلات السياحية للمسلمين. قم بإنشاء خطط منطقية ومناسبة للعائلات.'
     });
 
     return parseJsonResponse<ItineraryPlan>(response.text, 'TripFramework');
 };
 
 export const getSuggestionsForStep = async (locationName: string, step: TripFrameworkStep): Promise<Suggestion[]> => {
-    const prompt = `Find 2-3 specific, Muslim-friendly suggestions for the following step in a trip to ${locationName}:
-    - Time: ${step.timeOfDay}
-    - Activity: ${step.description}
-    - Type: ${step.activityType}
-    For restaurants, prioritize places that are certified Halal or explicitly offer Halal options. Use Google Maps to find real places with details like address, rating, and URL. Format the response as a JSON object.`;
+    const prompt = `بناءً على خطة السفر إلى "${locationName}"، اقترح 2-3 خيارات محددة للنشاط التالي: "${step.description}".
+    إذا كان نوع النشاط "EAT"، فركز على المطاعم الحلال أو التي تقدم خيارات حلال.
+    لكل اقتراح، قدم الاسم، وصفًا موجزًا، العنوان، رابط خرائط جوجل، وتقييم جوجل إن وجد.
+    أجب بتنسيق JSON حصرياً باللغة العربية بناءً على مخطط SUGGESTIONS_SCHEMA.`;
 
     const response = await ai.models.generateContent({
         model: 'gemini-2.5-pro',
         contents: prompt,
         config: {
-            tools: [{ googleMaps: {} }],
-            responseMimeType: "application/json",
-            responseSchema: SUGGESTIONS_SCHEMA,
+            tools: [{googleMaps: {}}],
         },
-        systemInstruction: "You are a travel agent specializing in Halal tourism. You provide specific, real-world suggestions based on user requests, using mapping tools to ensure accuracy. Your output is always in JSON format."
+        systemInstruction: 'أنت مساعد سفر ذكي. ابحث عن أفضل الاقتراحات العملية والمناسبة للمسلمين بناءً على خطة الرحلة.'
     });
 
     const result = parseJsonResponse<{ suggestions: Suggestion[] }>(response.text, 'Suggestions');
-    return result.suggestions || [];
-};
-// --- END: Travel Planner Functions ---
-
-// --- START: Nearby Places Function ---
-export const getNearbyPlacesForMap = async (latitude: number, longitude: number): Promise<NearbyPlacesResponse> => {
-    const prompt = `Find a diverse mix of about 10-15 interesting places near the coordinates ${latitude}, ${longitude}. Include a mix of halal-friendly restaurants, cafes, significant sights, and interesting shops. For each place, provide its name, exact coordinates, category, address, rating, and Google Maps URL. The category must be one of: 'restaurant', 'cafe', 'sight', 'shop', or 'other'. Respond only with a JSON object.`;
     
+    // Enhance with grounding data
+    const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
+    if (groundingChunks) {
+        result.suggestions.forEach(suggestion => {
+            const match = groundingChunks.find(c => c.maps?.title.includes(suggestion.name));
+            if (match?.maps) {
+                const place = mapGeminiPlaceToPlace(match.maps);
+                suggestion.url = suggestion.url || place.url;
+                suggestion.address = suggestion.address || place.address;
+                suggestion.rating = suggestion.rating || place.rating;
+                suggestion.userRatingsTotal = suggestion.userRatingsTotal || place.userRatingsTotal;
+            }
+        });
+    }
+
+    return result.suggestions;
+};
+
+
+export const getNearbyPlacesForMap = async (latitude: number, longitude: number): Promise<NearbyPlacesResponse> => {
+    const prompt = `ابحث عن أماكن مثيرة للاهتمام بالقرب مني، بما في ذلك مطاعم، مقاهي، معالم سياحية، ومتاجر. أجب بتنسيق JSON حصرياً باللغة العربية بناءً على مخطط NEARBY_PLACES_SCHEMA.`;
     const response = await ai.models.generateContent({
         model: 'gemini-2.5-pro',
         contents: prompt,
@@ -565,76 +501,54 @@ export const getNearbyPlacesForMap = async (latitude: number, longitude: number)
             tools: [{ googleMaps: {} }],
             toolConfig: {
                 retrievalConfig: {
-                    latLng: {
-                        latitude: latitude,
-                        longitude: longitude
-                    }
+                    latLng: { latitude, longitude }
                 }
-            },
-            responseMimeType: "application/json",
-            responseSchema: NEARBY_PLACES_SCHEMA
+            }
         },
-        systemInstruction: "You are a location-aware assistant that finds interesting places for users. You use mapping tools to get accurate data and provide it in a structured JSON format."
+        systemInstruction: 'أنت دليل سياحي محلي، مهمتك هي إيجاد مجموعة متنوعة من الأماكن القريبة والمثيرة للاهتمام.'
     });
 
     return parseJsonResponse<NearbyPlacesResponse>(response.text, 'NearbyPlaces');
 };
-// --- END: Nearby Places Function ---
 
-// --- START: Phrase Translator Functions ---
+
 export const generateCommonPhrasesForTravel = async (destination: string): Promise<CommonPhrasesResponse> => {
-    const prompt = `Generate a list of common, essential travel phrases for a tourist visiting "${destination}".
-    The phrases should be translated from Arabic to the primary local language.
-    Include phonetic pronunciations. Organize them into logical categories like "Greetings", "Basics", "Shopping", "Dining", and "Emergency".
-    The response must be a JSON object.`;
-
+    const prompt = `أنا مسافر إلى "${destination}". قم بإنشاء قائمة بالعبارات الشائعة والمفيدة للمسافرين باللغة المحلية. يجب أن تتضمن القائمة فئات مثل "التحيات"، "في المطعم"، "التسوق"، و"الطوارئ". لكل عبارة، قدم النص الأصلي باللغة العربية، الترجمة، وطريقة النطق المبسطة. حدد اسم اللغة ورمز اللغة BCP-47.`;
     const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash',
         contents: prompt,
         config: {
-            responseMimeType: "application/json",
-            responseSchema: PHRASES_SCHEMA,
+            responseMimeType: 'application/json',
+            responseSchema: PHRASES_SCHEMA
         },
-        systemInstruction: "You are a travel assistant that provides language help. Your output must be a well-structured JSON object."
+        systemInstruction: 'أنت لغوي وخبير سفر، متخصص في تزويد المسافرين بالعبارات الأساسية للتواصل.'
     });
-
     return parseJsonResponse<CommonPhrasesResponse>(response.text, 'CommonPhrases');
 };
 
 export const translateCustomPhrase = async (phrase: string, language: string): Promise<Omit<Phrase, 'original'>> => {
-    const prompt = `Translate the following Arabic phrase to ${language}: "${phrase}".
-    Provide the translation and a simple phonetic pronunciation.
-    The response must be a JSON object.`;
-
+    const prompt = `ترجم العبارة العربية التالية: "${phrase}" إلى لغة ${language}. قدم الترجمة والنطق المبسط فقط.`;
     const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash',
         contents: prompt,
         config: {
-            responseMimeType: "application/json",
-            responseSchema: TRANSLATE_PHRASE_SCHEMA,
-        },
-        systemInstruction: "You are a helpful translator. Your output is always a well-structured JSON object."
+            responseMimeType: 'application/json',
+            responseSchema: TRANSLATE_PHRASE_SCHEMA
+        }
     });
-
     return parseJsonResponse<Omit<Phrase, 'original'>>(response.text, 'TranslatePhrase');
 };
-// --- END: Phrase Translator Functions ---
 
-// FIX: Add function to generate a comprehensive travel guide.
-// --- START: Traveler Guide Function ---
+
 export const generateTravelGuide = async (location: string): Promise<TravelGuideResponse> => {
-    const prompt = `Create a comprehensive travel guide for a Muslim traveler visiting "${location}". The guide should be practical, culturally sensitive, and provide all the necessary information for a smooth trip. Ensure the response is in Arabic and formatted as a JSON object according to the provided schema.`;
-
-    const response = await ai.models.generateContent({
+    const prompt = `أنشئ دليل سفر شامل ومفصل للمسافر المسلم إلى "${location}". يجب أن يغطي الدليل جميع الجوانب المهمة مثل متطلبات الدخول، المواصلات، العملة، الاتصالات، الصحة والسلامة، الثقافة المحلية، معلومات خاصة بالمسلمين (طعام حلال، مساجد)، ومعلومات عملية. أجب بتنسيق JSON حصرياً باللغة العربية بناءً على مخطط TRAVEL_GUIDE_SCHEMA.`;
+     const response = await ai.models.generateContent({
         model: 'gemini-2.5-pro',
         contents: prompt,
         config: {
-            responseMimeType: "application/json",
-            responseSchema: TRAVEL_GUIDE_SCHEMA,
+            tools: [{googleSearch: {}}],
         },
-        systemInstruction: "You are an expert travel writer who creates detailed, well-structured travel guides for Muslim tourists. Your output must be a JSON object in Arabic, strictly adhering to the user's requested schema."
+        systemInstruction: 'أنت خبير سفر متخصص في إنشاء أدلة شاملة وموثوقة للمسافرين المسلمين، مع التركيز على الدقة والتفاصيل العملية.'
     });
-
     return parseJsonResponse<TravelGuideResponse>(response.text, 'TravelGuide');
 };
-// --- END: Traveler Guide Function ---

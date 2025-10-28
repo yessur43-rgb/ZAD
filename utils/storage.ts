@@ -1,52 +1,6 @@
-import { HistoryItem, CommunityTip, TipCategory } from '../types';
+import { CommunityTip, TipCategory, HistoryItem, GeminiResponse } from '../types';
 
-const HISTORY_KEY = 'halalScanHistory';
 const COMMUNITY_TIPS_KEY_PREFIX = 'communityTips_';
-
-// --- START: Scan History Functions ---
-
-export const getScanHistory = (): HistoryItem[] => {
-  try {
-    const historyJson = localStorage.getItem(HISTORY_KEY);
-    if (historyJson) {
-      // Sort by most recent first
-      return JSON.parse(historyJson).sort((a: HistoryItem, b: HistoryItem) => b.timestamp - a.timestamp);
-    }
-  } catch (error) {
-    console.error('Failed to retrieve scan history:', error);
-  }
-  return [];
-};
-
-export const saveScanToHistory = (item: Omit<HistoryItem, 'id' | 'timestamp'>): void => {
-  try {
-    const history = getScanHistory();
-    const newHistoryItem: HistoryItem = {
-      ...item,
-      id: new Date().toISOString(),
-      timestamp: Date.now(),
-    };
-    // Add new item to the beginning of the array
-    const updatedHistory = [newHistoryItem, ...history];
-    // Limit history to 50 items to prevent excessive storage usage
-    if (updatedHistory.length > 50) {
-        updatedHistory.pop();
-    }
-    localStorage.setItem(HISTORY_KEY, JSON.stringify(updatedHistory));
-  } catch (error) {
-    console.error('Failed to save scan to history:', error);
-  }
-};
-
-export const clearScanHistory = (): void => {
-    try {
-        localStorage.removeItem(HISTORY_KEY);
-    } catch (error) {
-        console.error('Failed to clear scan history:', error);
-    }
-};
-
-// --- END: Scan History Functions ---
 
 // --- START: Community Tip Functions ---
 
@@ -101,3 +55,62 @@ export const upvoteCommunityTip = (location: string, tipId: string): CommunityTi
 };
 
 // --- END: Community Tip Functions ---
+
+// FIX: Add scan history management functions
+// --- START: Scan History Functions ---
+
+const SCAN_HISTORY_KEY = 'scanHistory';
+
+/**
+ * Retrieves the user's scan history from localStorage.
+ * @returns An array of HistoryItem, sorted by most recent first.
+ */
+export const getScanHistory = (): HistoryItem[] => {
+    try {
+        const historyJson = localStorage.getItem(SCAN_HISTORY_KEY);
+        if (historyJson) {
+            const history: HistoryItem[] = JSON.parse(historyJson);
+            // Sort by timestamp descending to show the most recent first
+            return history.sort((a, b) => b.timestamp - a.timestamp);
+        }
+    } catch (error) {
+        console.error('Failed to retrieve scan history:', error);
+    }
+    return [];
+};
+
+/**
+ * Saves a new item to the user's scan history.
+ * @param item The item to save, without id and timestamp.
+ */
+export const saveScanHistoryItem = (item: { type: 'image' | 'barcode'; identifier: string; result: GeminiResponse; }): void => {
+    try {
+        const currentHistory = getScanHistory();
+        const newHistoryItem: HistoryItem = {
+            ...item,
+            id: `${Date.now()}-${Math.random()}`, // Simple unique ID
+            timestamp: Date.now(),
+        };
+
+        // Prepend new item and limit history to 50 items to prevent excessive storage usage.
+        const updatedHistory = [newHistoryItem, ...currentHistory].slice(0, 50);
+
+        localStorage.setItem(SCAN_HISTORY_KEY, JSON.stringify(updatedHistory));
+    } catch (error) {
+        console.error('Failed to save scan history item:', error);
+    }
+};
+
+
+/**
+ * Clears the entire scan history from localStorage.
+ */
+export const clearScanHistory = (): void => {
+    try {
+        localStorage.removeItem(SCAN_HISTORY_KEY);
+    } catch (error) {
+        console.error('Failed to clear scan history:', error);
+    }
+};
+
+// --- END: Scan History Functions ---
