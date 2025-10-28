@@ -1,5 +1,5 @@
 import React, { useState, lazy, Suspense, useEffect } from 'react';
-import Header from './Header';
+import Header from './components/Header';
 import { ImageIcon } from './components/icons/ImageIcon';
 import { ChatIcon } from './components/icons/ChatIcon';
 import { IngredientIcon } from './components/icons/IngredientIcon';
@@ -11,8 +11,10 @@ import { AppIcon } from './components/icons/AppIcon';
 import { OnMyWayIcon } from './components/icons/OnMyWayIcon';
 import { CompassIcon } from './components/icons/CompassIcon';
 import ErrorBoundary from './components/ErrorBoundary';
+import { saveApiKey, getApiKey, clearApiKey } from './services/apiKeyService';
+import ApiKeyInput from './components/ApiKeyInput';
+import { havePermissionsBeenRequested } from './services/permissionService';
 
-// Lazy load all tool components for code splitting to improve initial load time.
 const ImageAnalyzer = lazy(() => import('./components/ImageAnalyzer'));
 const ChatBot = lazy(() => import('./components/ChatBot'));
 const FindIt = lazy(() => import('./components/FindIt'));
@@ -25,63 +27,40 @@ const QiblaFinder = lazy(() => import('./components/QiblaFinder'));
 
 type ToolView = 'image' | 'chat' | 'findit' | 'menu' | 'ingredient' | 'activities' | 'onmyway' | 'qibla';
 
-const ApiKeyGate: React.FC<{ onKeySelected: () => void }> = ({ onKeySelected }) => {
-    const handleSelectKey = async () => {
-        await (window as any).aistudio.openSelectKey();
-        onKeySelected();
-    };
-
-    return (
-        <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex items-center justify-center p-4" dir="rtl">
-            <div className="w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6 md:p-8 text-center animate-fade-in">
-                <AppIcon className="w-16 h-16 text-emerald-500 mx-auto mb-4" />
-                <h1 className="text-2xl font-bold text-gray-800 dark:text-white">مطلوب مفتاح API</h1>
-                <p className="mt-2 text-gray-600 dark:text-gray-400">
-                    للتفاعل مع نماذج Gemini، يرجى تحديد مفتاح API الخاص بك.
-                </p>
-                <button
-                    onClick={handleSelectKey}
-                    className="mt-8 w-full px-4 py-3 bg-emerald-600 text-white font-bold rounded-lg hover:bg-emerald-700 transition flex items-center justify-center"
-                >
-                    تحديد مفتاح API
-                </button>
-                <p className="mt-4 text-xs text-gray-400 dark:text-gray-500">
-                    قد يتم تطبيق رسوم. لمزيد من المعلومات، يرجى مراجعة{' '}
-                    <a href="https://ai.google.dev/gemini-api/docs/billing" target="_blank" rel="noopener noreferrer" className="underline hover:text-emerald-500">
-                        وثائق الفوترة
-                    </a>.
-                </p>
-            </div>
-            <style>{`
-              @keyframes fade-in {
-                  from { opacity: 0; transform: scale(0.95); }
-                  to { opacity: 1; transform: scale(1); }
-              }
-              .animate-fade-in {
-                  animation: fade-in 0.3s ease-out forwards;
-              }
-            `}</style>
-        </div>
-    );
-};
-
 const App: React.FC = () => {
   const [selectedTool, setSelectedTool] = useState<ToolView | null>(null);
-  const [arePermissionsHandled, setArePermissionsHandled] = useState<boolean>(false);
+  const [arePermissionsHandled, setArePermissionsHandled] = useState<boolean>(() => havePermissionsBeenRequested());
   const [splashComplete, setSplashComplete] = useState<boolean>(false);
-  const [apiKeyReady, setApiKeyReady] = useState<boolean>(false);
+  const [apiKey, setApiKey] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+
 
   useEffect(() => {
-    const checkApiKey = async () => {
-        if (await (window as any).aistudio.hasSelectedApiKey()) {
-            setApiKeyReady(true);
-        }
-    };
-    checkApiKey();
+    const key = getApiKey();
+    setApiKey(key);
+    setIsLoading(false);
   }, []);
 
-  if (!apiKeyReady) {
-    return <ApiKeyGate onKeySelected={() => setApiKeyReady(true)} />;
+  const handleApiKeySubmit = (key: string) => {
+    saveApiKey(key);
+    setApiKey(key);
+  };
+
+  const handleClearApiKey = () => {
+    clearApiKey();
+    setApiKey(null);
+  }
+
+  if (isLoading) {
+    return (
+        <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex items-center justify-center">
+             <AppIcon className="w-24 h-24 text-emerald-500 animate-pulse" />
+        </div>
+    );
+  }
+
+  if (!apiKey) {
+    return <ApiKeyInput onKeySubmit={handleApiKeySubmit} />;
   }
 
   if (!splashComplete) {
@@ -186,7 +165,7 @@ const App: React.FC = () => {
   
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex flex-col" dir="rtl">
-      <Header />
+      <Header onClearApiKey={handleClearApiKey} onReplaceApiKey={handleApiKeySubmit} hasApiKey={!!apiKey} />
       <main className="flex-grow container mx-auto flex flex-col">
         <div className={`flex-grow ${selectedTool ? '' : 'p-4'}`}>
           {renderToolsContent()}

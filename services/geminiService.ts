@@ -35,10 +35,37 @@ import {
     TRANSLATE_PHRASE_SCHEMA,
     TRAVEL_GUIDE_SCHEMA
 } from '../constants';
+import { getApiKey } from './apiKeyService';
 
-// Helper function to get a fresh AI client instance.
-// This ensures that the most up-to-date API key from the environment is used for every request.
-const getAiClient = () => new GoogleGenAI({ apiKey: process.env.API_KEY as string });
+
+const getAiClient = () => {
+    const apiKey = getApiKey();
+    if (!apiKey) {
+        throw new Error("API Key not found in storage.");
+    }
+    return new GoogleGenAI({ apiKey });
+};
+
+/**
+ * Validates a given API key by making a lightweight test call.
+ * @param key The API key to validate.
+ * @returns True if the key is valid, false otherwise.
+ */
+export const validateApiKey = async (key: string): Promise<boolean> => {
+    try {
+        const testAi = new GoogleGenAI({ apiKey: key });
+        // Use a very simple, low-cost model and prompt for validation
+        await testAi.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: 'test',
+        });
+        return true; // If the call succeeds, the key is valid
+    } catch (error) {
+        console.error("API Key validation failed:", error);
+        return false; // Any error during this test means the key is likely invalid
+    }
+};
+
 
 // Helper to safely parse JSON responses from the model
 const parseJsonResponse = <T>(jsonString: string, schemaName: string): T => {

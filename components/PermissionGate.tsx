@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { CameraIcon } from './icons/CameraIcon';
 import { LocationMarkerIcon } from './icons/LocationMarkerIcon';
 import { AppIcon } from './icons/AppIcon';
+import { markPermissionsAsRequested } from '../services/permissionService';
 
 interface PermissionGateProps {
   onComplete: () => void;
@@ -36,6 +37,8 @@ const PermissionGate: React.FC<PermissionGateProps> = ({ onComplete }) => {
         console.warn('Geolocation permission was not granted:', err);
       }
     } finally {
+      // Mark that we've gone through this gate once so it doesn't show again.
+      markPermissionsAsRequested();
       // Regardless of the outcome, we proceed to the app.
       // The features that need permissions will handle the granted/denied state internally.
       onComplete();
