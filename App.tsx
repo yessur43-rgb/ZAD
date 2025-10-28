@@ -25,11 +25,64 @@ const QiblaFinder = lazy(() => import('./components/QiblaFinder'));
 
 type ToolView = 'image' | 'chat' | 'findit' | 'menu' | 'ingredient' | 'activities' | 'onmyway' | 'qibla';
 
+const ApiKeyGate: React.FC<{ onKeySelected: () => void }> = ({ onKeySelected }) => {
+    const handleSelectKey = async () => {
+        await (window as any).aistudio.openSelectKey();
+        onKeySelected();
+    };
+
+    return (
+        <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex items-center justify-center p-4" dir="rtl">
+            <div className="w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6 md:p-8 text-center animate-fade-in">
+                <AppIcon className="w-16 h-16 text-emerald-500 mx-auto mb-4" />
+                <h1 className="text-2xl font-bold text-gray-800 dark:text-white">مطلوب مفتاح API</h1>
+                <p className="mt-2 text-gray-600 dark:text-gray-400">
+                    للتفاعل مع نماذج Gemini، يرجى تحديد مفتاح API الخاص بك.
+                </p>
+                <button
+                    onClick={handleSelectKey}
+                    className="mt-8 w-full px-4 py-3 bg-emerald-600 text-white font-bold rounded-lg hover:bg-emerald-700 transition flex items-center justify-center"
+                >
+                    تحديد مفتاح API
+                </button>
+                <p className="mt-4 text-xs text-gray-400 dark:text-gray-500">
+                    قد يتم تطبيق رسوم. لمزيد من المعلومات، يرجى مراجعة{' '}
+                    <a href="https://ai.google.dev/gemini-api/docs/billing" target="_blank" rel="noopener noreferrer" className="underline hover:text-emerald-500">
+                        وثائق الفوترة
+                    </a>.
+                </p>
+            </div>
+            <style>{`
+              @keyframes fade-in {
+                  from { opacity: 0; transform: scale(0.95); }
+                  to { opacity: 1; transform: scale(1); }
+              }
+              .animate-fade-in {
+                  animation: fade-in 0.3s ease-out forwards;
+              }
+            `}</style>
+        </div>
+    );
+};
 
 const App: React.FC = () => {
   const [selectedTool, setSelectedTool] = useState<ToolView | null>(null);
   const [arePermissionsHandled, setArePermissionsHandled] = useState<boolean>(false);
   const [splashComplete, setSplashComplete] = useState<boolean>(false);
+  const [apiKeyReady, setApiKeyReady] = useState<boolean>(false);
+
+  useEffect(() => {
+    const checkApiKey = async () => {
+        if (await (window as any).aistudio.hasSelectedApiKey()) {
+            setApiKeyReady(true);
+        }
+    };
+    checkApiKey();
+  }, []);
+
+  if (!apiKeyReady) {
+    return <ApiKeyGate onKeySelected={() => setApiKeyReady(true)} />;
+  }
 
   if (!splashComplete) {
     return (
