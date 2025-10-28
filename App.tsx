@@ -1,4 +1,3 @@
-
 import React, { useState, lazy, Suspense, useEffect } from 'react';
 import Header from './Header';
 import { ImageIcon } from './components/icons/ImageIcon';
@@ -10,12 +9,7 @@ import PermissionGate from './components/PermissionGate';
 import { ActivityIcon } from './components/icons/ActivityIcon';
 import { AppIcon } from './components/icons/AppIcon';
 import { OnMyWayIcon } from './components/icons/OnMyWayIcon';
-import { TravelIcon } from './components/icons/TravelIcon';
-import { GuideIcon } from './components/icons/GuideIcon';
-import { UsersIcon } from './components/icons/UsersIcon';
-import { TranslatorIcon } from './components/icons/TranslatorIcon';
 import { CompassIcon } from './components/icons/CompassIcon';
-import { LiveTranslateIcon } from './components/icons/LiveTranslateIcon';
 import ErrorBoundary from './components/ErrorBoundary';
 
 // Lazy load all tool components for code splitting to improve initial load time.
@@ -26,29 +20,21 @@ const OnMyWay = lazy(() => import('./components/OnMyWay'));
 const MenuAnalyzer = lazy(() => import('./components/MenuAnalyzer'));
 const ActivitiesFinder = lazy(() => import('./components/ActivitiesFinder'));
 const IngredientGuide = lazy(() => import('./components/IngredientGuide'));
-const TravelPlanner = lazy(() => import('./TravelGuide')); // From TravelGuide.tsx which exports TravelPlanner
-const TravelerGuide = lazy(() => import('./components/MuslimGuide')); // From components/MuslimGuide.tsx which exports TravelerGuide
-const CommunityHub = lazy(() => import('./components/CommunityHub'));
-const PhraseTranslator = lazy(() => import('./components/RecipeGenerator')); // from components/RecipeGenerator.tsx which exports PhraseTranslator
 const QiblaFinder = lazy(() => import('./components/QiblaFinder'));
-const LiveTranslator = lazy(() => import('./components/LiveTranslator'));
 
 
-type ToolView = 'image' | 'chat' | 'findit' | 'menu' | 'ingredient' | 'activities' | 'onmyway' | 'planner' | 'guide' | 'community' | 'phrases' | 'qibla' | 'live';
+type ToolView = 'image' | 'chat' | 'findit' | 'menu' | 'ingredient' | 'activities' | 'onmyway' | 'qibla';
 
 
 const App: React.FC = () => {
   const [selectedTool, setSelectedTool] = useState<ToolView | null>(null);
   const [arePermissionsHandled, setArePermissionsHandled] = useState<boolean>(false);
+  const [splashComplete, setSplashComplete] = useState<boolean>(false);
 
-  // Simple check to avoid splash screen on every tool close
-  const hasShownSplash = React.useRef(false);
-
-  if (!hasShownSplash.current) {
+  if (!splashComplete) {
     return (
       <SplashScreen onComplete={() => {
-        hasShownSplash.current = true;
-        setArePermissionsHandled(false); // Trigger permission gate after splash
+        setSplashComplete(true);
       }} />
     );
   }
@@ -67,12 +53,7 @@ const App: React.FC = () => {
           menu: <MenuAnalyzer />,
           activities: <ActivitiesFinder />,
           ingredient: <IngredientGuide />,
-          planner: <TravelPlanner />,
-          guide: <TravelerGuide />,
-          community: <CommunityHub />,
-          phrases: <PhraseTranslator />,
           qibla: <QiblaFinder />,
-          live: <LiveTranslator />
       };
       const toolLabelMap: Record<ToolView, string> = {
           image: 'تحليل المنتج',
@@ -82,12 +63,7 @@ const App: React.FC = () => {
           menu: 'تحليل القائمة',
           activities: 'الأنشطة',
           ingredient: 'دليل المكونات',
-          planner: 'مخطط الرحلات',
-          guide: 'دليل المسافر',
-          community: 'مركز المجتمع',
-          phrases: 'مترجم العبارات',
           qibla: 'محدد القبلة',
-          live: 'المترجم الفوري'
       };
       
       return (
@@ -133,11 +109,6 @@ const App: React.FC = () => {
       { id: 'findit', label: 'أوجدها لي', Icon: FindItIcon },
       { id: 'menu', label: 'تحليل القائمة', Icon: MenuIcon },
       { id: 'activities', label: 'الأنشطة', Icon: ActivityIcon },
-      { id: 'phrases', label: 'مترجم العبارات', Icon: TranslatorIcon },
-      { id: 'live', label: 'المترجم الفوري', Icon: LiveTranslateIcon },
-      { id: 'planner', label: 'مخطط الرحلات', Icon: TravelIcon },
-      { id: 'guide', label: 'دليل المسافر', Icon: GuideIcon },
-      { id: 'community', label: 'مركز المجتمع', Icon: UsersIcon },
       { id: 'ingredient', label: 'دليل المكونات', Icon: IngredientIcon },
     ];
 

@@ -3,17 +3,14 @@ import { getNearbyPlacesForMap } from '../services/geminiService';
 import { MapPlace, PlaceCategory } from '../types';
 import { LoadingSpinner } from './icons/LoadingSpinner';
 import { MapPinIcon } from './icons/MapPinIcon';
-import { RestaurantIcon } from './icons/RestaurantIcon';
-import { SightseeingIcon } from './icons/SightseeingIcon';
-import { ShoppingBagIcon } from './icons/ShoppingBagIcon';
 import StarRating from './StarRating';
 
-const categoryConfig: Record<PlaceCategory, { translation: string, color: string, Icon: React.FC<any> }> = {
-    restaurant: { translation: 'مطاعم', color: 'bg-amber-500', Icon: RestaurantIcon },
-    cafe: { translation: 'مقاهي', color: 'bg-orange-500', Icon: RestaurantIcon },
-    sight: { translation: 'معالم', color: 'bg-sky-500', Icon: SightseeingIcon },
-    shop: { translation: 'تسوق', color: 'bg-fuchsia-500', Icon: ShoppingBagIcon },
-    other: { translation: 'متنوع', color: 'bg-gray-500', Icon: MapPinIcon },
+const categoryConfig: Record<PlaceCategory, { translation: string, color: string, iconPath: string }> = {
+    restaurant: { translation: 'مطاعم', color: 'bg-amber-500', iconPath: `<path stroke-linecap="round" stroke-linejoin="round" d="M2.25 21h19.5m-18-18v18m16.5-18v18m-1.5-18l-1.5 18m-5.25-18l-1.5 18m-5.25-18l-1.5 18M3.75 6h16.5M3.75 12h16.5M3.75 18h16.5" />` },
+    cafe: { translation: 'مقاهي', color: 'bg-orange-500', iconPath: `<path stroke-linecap="round" stroke-linejoin="round" d="M2.25 21h19.5m-18-18v18m16.5-18v18m-1.5-18l-1.5 18m-5.25-18l-1.5 18m-5.25-18l-1.5 18M3.75 6h16.5M3.75 12h16.5M3.75 18h16.5" />` },
+    sight: { translation: 'معالم', color: 'bg-sky-500', iconPath: `<path stroke-linecap="round" stroke-linejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.776 48.776 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" /><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM18.75 10.5h.008v.008h-.008V10.5z" />` },
+    shop: { translation: 'تسوق', color: 'bg-fuchsia-500', iconPath: `<path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.658-.463 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0zm7.5 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />` },
+    other: { translation: 'متنوع', color: 'bg-gray-500', iconPath: `<path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />` },
 };
 
 const NearbyView: React.FC = () => {
@@ -102,7 +99,8 @@ const NearbyView: React.FC = () => {
         filteredPlaces.forEach(place => {
              const config = categoryConfig[place.category] || categoryConfig.other;
              const markerIcon = L.divIcon({
-                html: `<div class="${config.color} rounded-full p-1.5 shadow-md"><svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">${(config.Icon({}))?.props.children}</svg></div>`,
+                // FIX: Replaced problematic React component-to-string conversion with a direct SVG path string.
+                html: `<div class="${config.color} rounded-full p-1.5 shadow-md"><svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">${config.iconPath}</svg></div>`,
                 className: 'bg-transparent border-0',
                 iconSize: [28, 28],
                 iconAnchor: [14, 14],
