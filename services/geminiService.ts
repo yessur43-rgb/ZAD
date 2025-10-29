@@ -101,11 +101,27 @@ const productSystemInstruction = 'أنت خبير في الشريعة الإسل
 export const analyzeImage = async (base64Data: string, mimeType: string): Promise<GeminiResponse> => {
   const ai = getAiClient();
   const imagePart = { inlineData: { data: base64Data, mimeType } };
-  const textPart = { text: 'حلل صورة هذا المنتج الغذائي. ركز على قائمة المكونات لتحديد ما إذا كان حلالاً أم حراماً أم مشبوهاً. قدم تقييماً صحياً موجزاً. يجب أن تكون الإجابة بتنسيق JSON حصرياً باللغة العربية.' };
+
+  // Step 1: Extract ingredients text from the image
+  const textExtractionPrompt = 'From the product image provided, extract all text from the ingredients list. Respond ONLY with the ingredients text, separated by commas. If the ingredients are unreadable or not visible, respond with the exact phrase "INGREDIENTS_UNREADABLE".';
   
+  const textResponse = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: { parts: [imagePart, { text: textExtractionPrompt }] },
+  });
+
+  const ingredientsText = textResponse.text.trim();
+
+  if (ingredientsText === 'INGREDIENTS_UNREADABLE' || ingredientsText.length < 10) {
+      throw new Error('لم نتمكن من قراءة قائمة المكونات. يرجى التأكد من أن الصورة واضحة والإضاءة جيدة.');
+  }
+  
+  // Step 2: Analyze the extracted text for Halal status and health info
+  const analysisPrompt = `Based on this list of ingredients: "${ingredientsText}", analyze the product. Determine if it is Halal, Haram, or Mushbooh. Provide a health assessment. The response must be a JSON object in Arabic, following the specified schema.`;
+
   const response = await ai.models.generateContent({
     model: 'gemini-2.5-flash',
-    contents: { parts: [imagePart, textPart] },
+    contents: analysisPrompt,
     config: {
       responseMimeType: "application/json",
       responseSchema: PRODUCT_ANALYSIS_SCHEMA,
@@ -489,7 +505,7 @@ export const identifyObjectOrPlace = async (base64Data: string, mimeType: string
 };
 
 export const findActivities = async (
-    location: { latitude: number; longitude: number } | string,
+    location: { latitude: number; longitude: number; name?: string } | string,
     query?: string
 ): Promise<Activity[]> => {
     const ai = getAiClient();
@@ -505,7 +521,9 @@ export const findActivities = async (
         config: {
             tools: [{ googleMaps: {} }],
             toolConfig: {
-                retrievalConfig: typeof location !== 'string' ? { latLng: location } : undefined,
+                retrievalConfig: typeof location !== 'string' 
+                    ? { latLng: { latitude: location.latitude, longitude: location.longitude } } 
+                    : undefined,
             },
         }
     });

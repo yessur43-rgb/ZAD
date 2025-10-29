@@ -20,13 +20,19 @@ const getStatusDetails = (status: HalalStatusArabic) => {
 
 const LiveAnalysisOverlay: React.FC<LiveAnalysisOverlayProps> = ({ result, isAnalyzing }) => {
   if (!isAnalyzing && !result) {
-    return null; // Don't show anything if not started
+    return (
+        <div className="w-full mt-4 p-4 rounded-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200 dark:border-gray-700 shadow-md">
+            <p className="text-center text-gray-700 dark:text-gray-300 font-semibold">
+                وجه الكاميرا نحو قائمة المكونات
+            </p>
+        </div>
+    );
   }
 
   const { text, color, Icon } = result ? getStatusDetails(result.الحالة) : { text: 'جاري التحليل...', color: 'text-gray-500 dark:text-gray-400', Icon: null };
 
   return (
-    <div className="w-full mt-4 p-4 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-md">
+    <div className="w-full mt-4 p-4 rounded-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200 dark:border-gray-700 shadow-md">
       <div className="flex items-center gap-4">
         <div className="flex-shrink-0">
           {result && Icon ? (
@@ -45,12 +51,12 @@ const LiveAnalysisOverlay: React.FC<LiveAnalysisOverlayProps> = ({ result, isAna
           <div className="mt-1">
             {result && result.الأدلة.length > 0 ? (
               <p className="text-sm text-gray-600 dark:text-gray-400 truncate">
-                <span className="font-semibold">الأدلة: </span>
-                {result.الأدلة.join(', ')}
+                <span className="font-semibold">السبب: </span>
+                {result.السبب}
               </p>
             ) : (
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                {isAnalyzing ? 'وجه الكاميرا نحو قائمة المكونات...' : 'لم يتم العثور على أدلة.'}
+                {isAnalyzing ? 'يتم قراءة المكونات وتحليلها...' : 'لم يتم العثور على أدلة.'}
               </p>
             )}
           </div>

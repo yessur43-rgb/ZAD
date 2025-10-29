@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, lazy, Suspense } from 'react';
 import { analyzeImage, analyzeBarcode } from '../services/geminiService';
 import { GeminiResponse } from '../types';
 import ResultCard from './ResultCard';
@@ -7,6 +7,9 @@ import { CameraIcon } from './icons/CameraIcon';
 import { BarcodeIcon } from './icons/BarcodeIcon';
 import BarcodeScanner from './BarcodeScanner';
 import { saveScanHistoryItem } from '../utils/storage';
+import { ImageIcon } from './icons/ImageIcon';
+
+const CameraCapture = lazy(() => import('./LiveAnalysis')); // The file is renamed conceptually, but we are overwriting LiveAnalysis.tsx
 
 const ImageAnalyzer: React.FC = () => {
   const [image, setImage] = useState<string | null>(null);
@@ -15,8 +18,41 @@ const ImageAnalyzer: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<GeminiResponse | null>(null);
   const [isScannerOpen, setScannerOpen] = useState<boolean>(false);
+  const [isCameraOpen, setIsCameraOpen] = useState<boolean>(false);
+
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const dataURLtoFile = (dataurl: string, filename: string): File => {
+    const arr = dataurl.split(',');
+    const mimeMatch = arr[0].match(/:(.*?);/);
+    if (!mimeMatch) {
+        throw new Error('Invalid data URL');
+    }
+    const mime = mimeMatch[1];
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while (n--) {
+      u8arr[n] = bstr.charCodeAt(n);
+    }
+    return new File([u8arr], filename, { type: mime });
+  };
+
+  const handleCapture = (dataUrl: string) => {
+    setIsCameraOpen(false);
+    setResult(null);
+    setError(null);
+    setImage(dataUrl);
+    try {
+        const file = dataURLtoFile(dataUrl, `capture-${Date.now()}.jpg`);
+        setImageFile(file);
+    } catch(e) {
+        console.error("Failed to convert data URL to file", e);
+        setError("فشل تحويل الصورة الملتقطة.");
+    }
+  };
+
 
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -84,6 +120,14 @@ const ImageAnalyzer: React.FC = () => {
     }
   };
   
+  if (isCameraOpen) {
+    return (
+      <Suspense fallback={<div className="flex justify-center items-center h-full"><LoadingSpinner /></div>}>
+        <CameraCapture onCapture={handleCapture} onClose={() => setIsCameraOpen(false)} />
+      </Suspense>
+    );
+  }
+
   return (
     <div className="flex flex-col items-center w-full">
       {isScannerOpen && <BarcodeScanner onScanSuccess={handleBarcodeScan} onClose={() => setScannerOpen(false)} />}
@@ -114,18 +158,18 @@ const ImageAnalyzer: React.FC = () => {
                 </div>
             ) : (
                 <div className="flex flex-col items-center justify-center h-48">
-                    <CameraIcon className="w-16 h-16 text-gray-400 dark:text-gray-500" />
+                    <ImageIcon className="w-16 h-16 text-gray-400 dark:text-gray-500" />
                     <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">اسحب وأفلت صورة المنتج هنا، أو انقر للبحث</p>
                 </div>
             )}
             </div>
 
-            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <button
                     onClick={() => fileInputRef.current?.click()}
                     className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-800 dark:text-gray-100 font-bold rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition"
                 >
-                    <CameraIcon className="w-5 h-5" />
+                    <ImageIcon className="w-5 h-5" />
                     <span>{image ? 'تغيير الصورة' : 'تحميل صورة'}</span>
                 </button>
                 <button
@@ -133,7 +177,14 @@ const ImageAnalyzer: React.FC = () => {
                     className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-800 dark:text-gray-100 font-bold rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition"
                 >
                     <BarcodeIcon className="w-5 h-5" />
-                    <span>مسح باركود</span>
+                    <span>باركود</span>
+                </button>
+                 <button
+                    onClick={() => setIsCameraOpen(true)}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-800 dark:text-gray-100 font-bold rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition"
+                >
+                    <CameraIcon className="w-5 h-5" />
+                    <span>الكاميرا</span>
                 </button>
             </div>
             
