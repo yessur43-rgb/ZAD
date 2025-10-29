@@ -1,12 +1,29 @@
 const USER_ID_KEY = 'zad_user_id';
+const USER_PROFILES_KEY = 'zad_user_profiles';
 
-/**
- * Generates a simple pseudo-UUID.
- * @returns A unique string identifier.
- */
+// --- Helper Functions ---
 const generateId = (): string => {
     return `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 };
+
+const getUserProfiles = (): Record<string, string> => {
+    try {
+        const stored = localStorage.getItem(USER_PROFILES_KEY);
+        return stored ? JSON.parse(stored) : {};
+    } catch (e) {
+        console.error("Failed to get user profiles", e);
+        return {};
+    }
+};
+
+const saveUserProfiles = (profiles: Record<string, string>): void => {
+    try {
+        localStorage.setItem(USER_PROFILES_KEY, JSON.stringify(profiles));
+    } catch (e) {
+        console.error("Failed to save user profiles", e);
+    }
+};
+
 
 /**
  * Retrieves the unique user ID from localStorage.
@@ -27,4 +44,20 @@ export const getUserId = (): string => {
         // Fallback to a non-persistent ID if localStorage fails
         return generateId();
     }
+};
+
+// --- Username Management ---
+export const getUsername = (userId: string): string | null => {
+    const profiles = getUserProfiles();
+    return profiles[userId] || null;
+};
+
+export const setUsername = (userId: string, username: string): void => {
+    const profiles = getUserProfiles();
+    profiles[userId] = username;
+    saveUserProfiles(profiles);
+};
+
+export const getAllUserProfiles = (): Record<string, string> => {
+    return getUserProfiles();
 };
