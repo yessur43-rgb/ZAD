@@ -313,29 +313,42 @@ export const findPlaces = async (
 
     // Extract descriptions from AI response text
     const responseText = response.text;
-    places.forEach((place) => {
-        // Try multiple patterns to extract description
-        // Pattern 1: "Place Name": "description"
-        const pattern1 = new RegExp(`\\*\\*${escapeRegex(place.name)}\\*\\*[^"]*"([^"]+)"`, 'i');
-        // Pattern 2: Place Name (description)
-        const pattern2 = new RegExp(`${escapeRegex(place.name)}[^(]*\\(([^)]+)\\)`, 'i');
-        // Pattern 3: Place Name: description.
-        const pattern3 = new RegExp(`${escapeRegex(place.name)}[:|：]\\s*([^.。\n]+)[.。]`, 'i');
 
-        let match = responseText.match(pattern1);
-        if (!match) match = responseText.match(pattern2);
-        if (!match) match = responseText.match(pattern3);
+    // Extract all descriptions between quotes (more reliable than name matching)
+    const descriptionPattern = /"([^"]{20,300})"/g;
+    const descriptions: string[] = [];
+    let match;
 
-        if (match && match[1]) {
-            let description = match[1].trim();
-            // Clean up the description
-            description = description.replace(/^["']|["']$/g, ''); // Remove quotes
-            description = description.replace(/^[:\s]+|[:\s]+$/g, ''); // Remove colons and spaces
-            if (description.length > 10 && description.length < 300) {
-                place.overview = description;
+    while ((match = descriptionPattern.exec(responseText)) !== null) {
+        const desc = match[1].trim();
+        // Filter out short strings that are probably not descriptions
+        if (desc.length >= 20 && desc.length <= 300) {
+            // Exclude strings that look like URLs or other non-description content
+            if (!desc.startsWith('http') && !desc.includes('://')) {
+                descriptions.push(desc);
+            }
+        }
+    }
+
+    console.log('📝 Extracted descriptions:', descriptions);
+    console.log('📍 Number of places:', places.length);
+
+    // Apply descriptions to places in order
+    // This works because AI returns places and descriptions in the same order
+    places.forEach((place, index) => {
+        if (index < descriptions.length) {
+            place.overview = descriptions[index];
+        } else {
+            // Fallback: try to find description by searching for place name
+            const namePattern = new RegExp(`(?:${escapeRegex(place.name)}|\\*\\*[^*]+\\*\\*)[^"]*"([^"]{20,300})"`, 'i');
+            const nameMatch = responseText.match(namePattern);
+            if (nameMatch && nameMatch[1]) {
+                place.overview = nameMatch[1].trim();
             }
         }
     });
+
+    console.log('✅ Places with overviews:', places.filter(p => p.overview).length);
 
     return { text: response.text, places };
 };
