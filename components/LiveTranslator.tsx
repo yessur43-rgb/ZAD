@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { GoogleGenAI, LiveServerMessage, Modality, Blob, LiveSession } from '@google/genai';
+// FIX: Aliased the imported `Blob` to `GenAiBlob` to avoid conflict with the native browser Blob type.
+import { GoogleGenAI, LiveServerMessage, Modality, Blob as GenAiBlob, LiveSession } from '@google/genai';
 
 // --- Start: Audio Helper Functions (as per Gemini SDK guidelines) ---
 function encode(bytes: Uint8Array) {
@@ -10,7 +11,7 @@ function encode(bytes: Uint8Array) {
   }
   return btoa(binary);
 }
-function createBlob(data: Float32Array): Blob {
+function createBlob(data: Float32Array): GenAiBlob {
   const l = data.length;
   const int16 = new Int16Array(l);
   for (let i = 0; i < l; i++) {

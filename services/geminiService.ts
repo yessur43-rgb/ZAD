@@ -184,13 +184,17 @@ export const findPlaces = async (
         parts: msg.parts.map(p => ({text: p.text}))
     }));
 
-    // Add explicit location context to the prompt for clarity
-    const locationName = location?.name ? `في "${location.name}"` : 'بالقرب من موقعي الحالي';
-    const finalQuery = `ابحث عن ${query} ${locationName}.`;
+    let finalQuery: string;
+    let systemInstruction: string;
 
-
-    // Strengthen the system instruction to be more flexible and return multiple results
-    const systemInstruction = `أنت مساعد جغرافي خبير مهمتك هي إيجاد أفضل الأماكن للمستخدمين باستخدام خرائط جوجل. قدم دائماً قائمة متنوعة من 3-5 خيارات إن أمكن، وليس نتيجة واحدة فقط. **التزم بشدة بالمدينة المحددة في الاستعلام (مثل "إنترلاكن") ولا تخرج عنها.** إذا كان البحث يتضمن فئة ومصطلحًا (مثل "سوبر ماركت مخابز")، ففسر ذلك بمرونة: ابحث عن "مخابز" قد تكون مستقلة أو داخل "سوبر ماركت". الأولوية هي توفير خيارات مفيدة وذات صلة في المنطقة المجاورة مباشرة، ولكن إذا كانت النتائج قليلة، يمكنك توسيع نطاق البحث قليلاً ليشمل أماكن أبعد ولكن لا تزال داخل نفس المدينة. هدفك هو تزويد المستخدم بقائمة غنية بالخيارات القريبة وذات الصلة.`;
+    if (location) {
+        const locationName = location.name;
+        finalQuery = `ابحث عن ${query} في "${locationName}".`;
+        systemInstruction = `أنت مساعد جغرافي خبير مهمتك هي إيجاد أفضل الأماكن للمستخدمين باستخدام خرائط جوجل في الموقع المحدد. قدم دائماً قائمة متنوعة من 3-5 خيارات إن أمكن. **التزم بشدة بالمدينة المحددة في الاستعلام (مثال: "${locationName}") ولا تخرج عنها.** إذا كان البحث يتضمن فئة ومصطلحًا (مثل "سوبر ماركت مخابز")، ففسر ذلك بمرونة. هدفك هو تزويد المستخدم بقائمة غنية بالخيارات القريبة وذات الصلة.`;
+    } else {
+        finalQuery = query; // Use query as is, user might have specified a city
+        systemInstruction = `أنت مساعد جغرافي خبير مهمتك هي إيجاد أماكن للمستخدمين. **إذا لم يحدد المستخدم مدينة في طلبه (مثل 'في الرياض')، يجب عليك أن تطلب منه بأدب توضيح المدينة التي يبحث فيها قبل استخدام أي أداة بحث.** لا تفترض موقعًا أبدًا. بمجرد تحديد المدينة، استخدم خرائط جوجل للعثور على قائمة متنوعة من 3-5 خيارات.`;
+    }
 
     const response = await ai.models.generateContent({
         model: "gemini-2.5-flash",

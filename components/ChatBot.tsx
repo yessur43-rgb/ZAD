@@ -45,7 +45,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ location }) => {
     useEffect(() => {
         const initialMessage = location 
             ? 'أهلاً بك! تم تحديد موقعك. اختر فئة وحدد ما تبحث عنه.'
-            : 'أهلاً بك! اختر فئة واذكر مدينة أو منطقة في بحثك لمساعدتك.';
+            : 'أهلاً بك! لم يتم تحديد موقعك. اختر فئة واحرص على ذكر اسم المدينة في بحثك (مثال: "مطاعم في جدة").';
         setMessages([{ role: 'model', parts: [{ text: initialMessage }] }]);
     }, [location]);
 
@@ -176,6 +176,12 @@ const ChatBot: React.FC<ChatBotProps> = ({ location }) => {
                             <CategoryButton value="mosques" label="مساجد" Icon={MosqueIcon} />
                         </div>
                     </div>
+
+                    {!location && (
+                        <div className="p-2 bg-amber-50 dark:bg-amber-900/40 text-center text-sm text-amber-800 dark:text-amber-200 border-b border-amber-200 dark:border-amber-800 flex-shrink-0">
+                            ⚠️ الموقع غير متوفر. للحصول على أفضل النتائج، يرجى ذكر اسم المدينة في بحثك.
+                        </div>
+                    )}
 
                     <div ref={chatContainerRef} className="flex-grow overflow-y-auto p-4 space-y-4">
                         {messages.map((msg, index) => (

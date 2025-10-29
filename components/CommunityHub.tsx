@@ -22,7 +22,7 @@ const fileToBase64 = (file: File): Promise<string> => {
     });
 };
 
-// FIX: Added missing helper function to generate unique IDs for attachments.
+// FIX: Added missing helper function to generate unique IDs for attachments, preventing a runtime error when creating new posts.
 const generateId = (): string => `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
 const CommunityHub: React.FC = () => {

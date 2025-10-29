@@ -9,7 +9,7 @@ interface State {
   error?: Error;
 }
 
-// FIX: Ensured ErrorBoundary is a class component. Error boundaries must be class components in React to use lifecycle methods like getDerivedStateFromError and componentDidCatch. This structure fixes errors where `this.setState` and `this.props` would be undefined in a functional component.
+// FIX: An Error Boundary must be a class component to use getDerivedStateFromError and componentDidCatch.
 class ErrorBoundary extends Component<Props, State> {
   public state: State = {
     hasError: false,

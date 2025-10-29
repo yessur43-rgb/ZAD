@@ -10,7 +10,15 @@ const generateId = (): string => `${Date.now()}-${Math.random().toString(36).sub
 const getCommunities = (): Community[] => {
     try {
         const stored = localStorage.getItem(COMMUNITIES_KEY);
-        return stored ? JSON.parse(stored) : [];
+        if (!stored) {
+            return [];
+        }
+        const parsed = JSON.parse(stored);
+        // Ensure it's an array before returning to prevent errors from corrupted data
+        if (Array.isArray(parsed)) {
+            return parsed;
+        }
+        return [];
     } catch (e) {
         console.error("Failed to get communities from localStorage", e);
         return [];
@@ -99,7 +107,15 @@ export const deleteAttachment = (communityId: string, postId: string, attachment
 export const getBannedUsers = (): string[] => {
     try {
         const stored = localStorage.getItem(BANNED_USERS_KEY);
-        return stored ? JSON.parse(stored) : [];
+        if (!stored) {
+            return [];
+        }
+        const parsed = JSON.parse(stored);
+        // Ensure it's an array before returning to prevent errors from corrupted data
+        if (Array.isArray(parsed)) {
+            return parsed;
+        }
+        return [];
     } catch (e) {
         console.error("Failed to get banned users", e);
         return [];
