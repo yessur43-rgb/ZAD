@@ -490,28 +490,85 @@ export const getHalalHaramList = async (place: Place): Promise<HalalHaramListRes
 
 export const findParkingForPlace = async (place: Place): Promise<ParkingSuggestionResponse> => {
     const ai = getAiClient();
-    const searchPrompt = `ابحث عن أفضل 2-3 خيارات لمواقف السيارات بالقرب من "${place.name}" في "${place.address || ''}". اذكر اسم الموقف، عنوانه الكامل، رابط خرائط جوجل، المسافة، تفاصيل الأسعار، وأي ملاحظات. أجب بتنسيق JSON حصرياً باللغة العربية بناءً على مخطط PARKING_INFO_SCHEMA.`;
-    
-    const response = await ai.models.generateContent({
-        model: "gemini-2.5-pro",
-        contents: searchPrompt,
-        config: {
-            tools: [{googleSearch: {}}],
-        }
-    });
 
-    // The model with search grounding might not return a JSON string directly.
-    // So we ask another model to format it.
-    const formatResponse = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: `Based on the following text, format the response as a JSON object that adheres to the PARKING_INFO_SCHEMA. Text: ${response.text}`,
-        config: {
-            responseMimeType: 'application/json',
-            responseSchema: PARKING_INFO_SCHEMA,
-        }
-    });
+    // Use a more direct approach with Google Maps
+    let searchQuery = `parking near ${place.name}`;
+    if (place.address) {
+        searchQuery = `parking near ${place.address}`;
+    }
 
-    return parseJsonResponse<ParkingSuggestionResponse>(formatResponse.text, 'ParkingInfo');
+    console.log('🅿️ Searching for parking:', searchQuery);
+
+    const searchPrompt = `ابحث عن مواقف سيارات قريبة من "${place.name}"${place.address ? ` في "${place.address}"` : ''}. استخدم خرائط جوجل للعثور على أقرب 2-3 مواقف.`;
+
+    try {
+        const response = await ai.models.generateContent({
+            model: "gemini-2.5-flash", // Changed from pro to flash for faster response
+            contents: searchPrompt,
+            config: {
+                tools: [{googleMaps: {}}], // Use Google Maps instead of Search
+                toolConfig: place.location ? {
+                    retrievalConfig: {
+                        latLng: {
+                            latitude: place.location.latitude,
+                            longitude: place.location.longitude
+                        }
+                    }
+                } : undefined,
+            }
+        });
+
+        console.log('🅿️ Raw parking response:', response.text);
+
+        // Format the response as JSON
+        const formatPrompt = `بناءً على المعلومات التالية، قم بإنشاء قائمة بمواقف السيارات بتنسيق JSON.
+
+المعلومات: ${response.text}
+
+قدم على الأقل موقف واحد. لكل موقف، قدم:
+- name: اسم الموقف
+- address: العنوان الكامل
+- url: رابط خرائط جوجل (اختياري)
+- distance_to_restaurant: المسافة التقديرية (مثال: "5 دقائق مشي", "200 م")
+- pricing_details: معلومات الأسعار (مثال: "مجاني", "مدفوع", "غير معلوم")
+- parking_type: نوع الموقف (Garage, Street, Lot, أو Unknown)
+- notes: ملاحظات إضافية (اختياري)
+
+إذا لم تجد معلومات دقيقة، قدم تقديرات معقولة.`;
+
+        const jsonResponse = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: formatPrompt,
+            config: {
+                responseMimeType: 'application/json',
+                responseSchema: PARKING_INFO_SCHEMA,
+            }
+        });
+
+        console.log('🅿️ Formatted parking response:', jsonResponse.text);
+
+        const result = parseJsonResponse<ParkingSuggestionResponse>(jsonResponse.text, 'ParkingInfo');
+
+        console.log('🅿️ Parsed parking result:', result);
+
+        return result;
+    } catch (error) {
+        console.error('🅿️ Error fetching parking:', error);
+
+        // Return a fallback response if API fails
+        return {
+            parkingSuggestions: [
+                {
+                    name: 'موقف قريب',
+                    address: place.address || 'بالقرب من المكان',
+                    distance_to_restaurant: 'غير محدد',
+                    pricing_details: 'غير معلوم',
+                    parking_type: 'Unknown',
+                    notes: 'يُنصح بالبحث عن مواقف في المنطقة المحيطة'
+                }
+            ]
+        };
+    }
 };
 
 export const findProductInStores = async (base64Data: string, mimeType: string, location: UserLocation): Promise<FindItResponse> => {
