@@ -12,8 +12,8 @@ const MenuResultCard: React.FC<MenuResultCardProps> = ({ result }) => {
 
   return (
     <div className="w-full max-w-2xl p-6 bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 animate-fade-in">
-        <h3 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">تحليل القائمة</h3>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">{source_description}</p>
+        <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">تحليل القائمة</h3>
+        <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">{source_description}</p>
         
         {/* Halal Items */}
         {halalItems.length > 0 && (
@@ -52,7 +52,7 @@ const MenuResultCard: React.FC<MenuResultCardProps> = ({ result }) => {
         )}
 
         {(halalItems.length === 0 && haramOrMushboohItems.length === 0) && (
-             <div className="text-center text-gray-500 dark:text-gray-400 py-8">
+             <div className="text-center text-gray-600 dark:text-gray-400 py-8">
                 <p>لم نتمكن من تحديد أي عناصر من القائمة. يرجى التأكد من أن الصورة واضحة ومقروءة.</p>
             </div>
         )}

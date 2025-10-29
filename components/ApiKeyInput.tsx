@@ -34,7 +34,7 @@ const ApiKeyInput: React.FC<ApiKeyInputProps> = ({ onKeySubmit }) => {
             <div className="w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6 md:p-8 text-center animate-fade-in">
                 <AppIcon className="w-16 h-16 text-emerald-500 mx-auto mb-4" />
                 <h1 className="text-2xl font-bold text-gray-800 dark:text-white">مرحباً بك في زاد</h1>
-                <p className="mt-2 text-gray-600 dark:text-gray-400">
+                <p className="mt-2 text-gray-700 dark:text-gray-300">
                     للبدء، يرجى إدخال مفتاح Gemini API الخاص بك. سيتم التحقق منه وحفظه في متصفحك بأمان.
                 </p>
                 <form onSubmit={handleSubmit} className="mt-8">
@@ -64,7 +64,7 @@ const ApiKeyInput: React.FC<ApiKeyInputProps> = ({ onKeySubmit }) => {
                         {isLoading ? 'جاري التحقق...' : 'حفظ ومتابعة'}
                     </button>
                 </form>
-                 <p className="mt-4 text-xs text-gray-400 dark:text-gray-500">
+                 <p className="mt-4 text-xs text-gray-500 dark:text-gray-400">
                     يمكنك الحصول على مفتاحك من{' '}
                     <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="underline hover:text-emerald-500">
                         Google AI Studio

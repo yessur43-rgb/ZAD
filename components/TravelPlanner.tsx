@@ -1,19 +1,17 @@
 import React, { useState } from 'react';
-// FIX: Corrected import paths for root directory
-import { generateTripFramework, getSuggestionsForStep } from './services/geminiService';
-import { ItineraryPlan, TripFrameworkStep, Suggestion, ActivityType } from './types';
-import { TravelIcon } from './components/icons/TravelIcon';
-import { LoadingSpinner } from './components/icons/LoadingSpinner';
-import SuggestionCard from './components/SuggestionCard';
-import { RestaurantIcon } from './components/icons/RestaurantIcon';
-import { SightseeingIcon } from './components/icons/SightseeingIcon';
-import { ShoppingBagIcon } from './components/icons/ShoppingBagIcon';
-import { CarIcon } from './components/icons/CarIcon';
-import { MosqueIcon } from './components/icons/MosqueIcon';
-import { ChevronDownIcon } from './components/icons/ChevronDownIcon';
-import { CheckBadgeIcon } from './components/icons/CheckBadgeIcon';
-import { MapPinIcon } from './components/icons/MapPinIcon';
-import { GuideIcon } from './components/icons/GuideIcon';
+import { generateTripFramework, getSuggestionsForStep } from '../services/geminiService';
+import { ItineraryPlan, TripFrameworkStep, Suggestion, ActivityType } from '../types';
+import { TravelIcon } from './icons/TravelIcon';
+import { LoadingSpinner } from './icons/LoadingSpinner';
+import SuggestionCard from './SuggestionCard';
+import { RestaurantIcon } from './icons/RestaurantIcon';
+import { SightseeingIcon } from './icons/SightseeingIcon';
+import { ShoppingBagIcon } from './icons/ShoppingBagIcon';
+import { CarIcon } from './icons/CarIcon';
+import { MosqueIcon } from './icons/MosqueIcon';
+import { ChevronDownIcon } from './icons/ChevronDownIcon';
+import { CheckBadgeIcon } from './icons/CheckBadgeIcon';
+import { MapPinIcon } from './icons/MapPinIcon';
 
 const activityIconMap: Record<ActivityType, React.FC<React.SVGProps<SVGSVGElement>>> = {
     EAT: RestaurantIcon,
@@ -100,8 +98,8 @@ const TravelPlanner: React.FC = () => {
                         <Icon className="w-7 h-7 text-emerald-500" />
                     </div>
                     <div className="flex-grow">
-                        <p className="font-bold text-gray-600 dark:text-gray-400">{step.timeOfDay}</p>
-                        <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{step.description}</h4>
+                        <p className="font-bold text-gray-500 dark:text-gray-400">{step.timeOfDay}</p>
+                        <h4 className="text-lg font-semibold text-gray-800 dark:text-gray-200">{step.description}</h4>
                     </div>
                 </div>
                 
@@ -171,8 +169,8 @@ const TravelPlanner: React.FC = () => {
         <div className="flex flex-col items-center p-4">
             <div className="w-full max-w-3xl">
                 <div className="text-center mb-6">
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">مخطط الرحلات التفاعلي</h2>
-                    <p className="text-gray-600 dark:text-gray-300 mt-1">أدخل وجهتك، وسنساعدك في بناء خطة سفر حلال خطوة بخطوة.</p>
+                    <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">مساعد السفر التفاعلي</h2>
+                    <p className="text-gray-500 dark:text-gray-400 mt-1">أدخل وجهتك، وسنساعدك في بناء خطة سفر حلال خطوة بخطوة.</p>
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-2">
@@ -211,21 +209,9 @@ const TravelPlanner: React.FC = () => {
                     )}
                     
                     {!isLoading && !plan && !error && (
-                        <div className="text-center text-gray-400 dark:text-gray-500 pt-8 space-y-6">
-                            <div className="flex items-center text-center">
-                                <div className="flex-grow border-t border-gray-300 dark:border-gray-600"></div>
-                                <span className="flex-shrink-0 mx-4 text-gray-500 dark:text-gray-400 font-semibold">أو</span>
-                                <div className="flex-grow border-t border-gray-300 dark:border-gray-600"></div>
-                            </div>
-                             <button
-                                // onClick={() => navigateToReadyPlans()} // This would navigate to a new component
-                                className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-white dark:bg-gray-800 border-2 border-dashed border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 font-bold rounded-lg hover:border-emerald-500 hover:text-emerald-600 dark:hover:border-emerald-500 dark:hover:text-emerald-400 transition"
-                            >
-                                <GuideIcon className="w-6 h-6" />
-                                <span>استعراض الخطط الجاهزة</span>
-                            </button>
-                             <TravelIcon className="w-20 h-20 mx-auto mb-4" />
-                             <p>أدخل وجهتك أعلاه لبناء خطتك الخاصة.</p>
+                        <div className="text-center text-gray-400 dark:text-gray-500 pt-12">
+                            <TravelIcon className="w-20 h-20 mx-auto mb-4" />
+                            <p>أين ستكون وجهتك القادمة؟</p>
                         </div>
                     )}
                 </div>

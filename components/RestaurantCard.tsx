@@ -83,7 +83,7 @@ const PlaceCard: React.FC<PlaceCardProps> = ({ place, category }) => {
                 </a>
               )}
           </div>
-           {p.address && <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{p.address}</p>}
+           {p.address && <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">{p.address}</p>}
           <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
               <span className="flex items-center gap-1"><WalkIcon className="w-3 h-3"/> {p.distance_to_restaurant}</span>
               <span className="flex items-center gap-1"><PriceIcon className="w-3 h-3"/> {p.pricing_details}</span>
@@ -99,7 +99,7 @@ const PlaceCard: React.FC<PlaceCardProps> = ({ place, category }) => {
     <div className="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
       <div className="flex justify-between items-start">
         <div className="flex-grow min-w-0">
-          <h4 className="font-bold text-lg text-gray-900 dark:text-white truncate">{place.name}</h4>
+          <h4 className="font-bold text-lg text-gray-900 dark:text-gray-100 truncate">{place.name}</h4>
         </div>
         {place.url && (
             <a href={place.url} target="_blank" rel="noopener noreferrer" className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 ml-2 flex-shrink-0" title="عرض على الخريطة">
@@ -110,7 +110,7 @@ const PlaceCard: React.FC<PlaceCardProps> = ({ place, category }) => {
 
       <div className="mt-2 text-sm text-gray-700 dark:text-gray-300">
          {place.address && (
-            <p className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1.5 mb-2">
+            <p className="text-xs text-gray-600 dark:text-gray-400 flex items-center gap-1.5 mb-2">
               <MapPinIcon className="w-3 h-3 flex-shrink-0" /> {place.address}
             </p>
           )}
@@ -119,7 +119,7 @@ const PlaceCard: React.FC<PlaceCardProps> = ({ place, category }) => {
                 <div className="flex items-center gap-1.5">
                     <StarRating rating={place.rating} />
                     {place.userRatingsTotal && (
-                        <span className="text-xs text-gray-400">({place.userRatingsTotal.toLocaleString('ar-SA')})</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400">({place.userRatingsTotal.toLocaleString('ar-SA')})</span>
                     )}
                 </div>
             )}
@@ -152,7 +152,7 @@ const PlaceCard: React.FC<PlaceCardProps> = ({ place, category }) => {
             {/* Halal/Haram List */}
             {halalHaramList && (
                 <div className="animate-fade-in">
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">{halalHaramList.source_description}</p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">{halalHaramList.source_description}</p>
                     {halalHaramList.halalItems.length > 0 && (
                         <div className="mt-3">
                             <h6 className="flex items-center gap-2 font-semibold text-sm text-emerald-800 dark:text-emerald-200"><ThumbsUpIcon className="w-4 h-4" /> أصناف حلال غالباً</h6>
@@ -175,7 +175,7 @@ const PlaceCard: React.FC<PlaceCardProps> = ({ place, category }) => {
             {/* Dish Suggestions */}
             {dishes && (
                 <div className="animate-fade-in">
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">{dishes.source_description}</p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">{dishes.source_description}</p>
                     {dishes.dishes.length > 0 ? (
                         <div className="space-y-2">{dishes.dishes.map(dish => (
                             <div key={dish.name} className="p-2 bg-gray-50 dark:bg-gray-700/50 rounded-md"><p className="font-semibold text-sm">{dish.name}</p><p className="text-xs text-gray-600 dark:text-gray-400">{dish.description}</p></div>))}
@@ -194,7 +194,7 @@ const PlaceCard: React.FC<PlaceCardProps> = ({ place, category }) => {
             )}
 
             {hasDetails && (halalHaramList || dishes || parking) && (
-                 <div className="text-sm space-y-2 text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg animate-fade-in mt-4">
+                 <div className="text-sm space-y-2 text-gray-800 dark:text-gray-300 bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg animate-fade-in mt-4">
                     {place.phoneNumber && <p className="flex items-center gap-1.5"><PhoneIcon className="w-4 h-4" /> <a href={`tel:${place.phoneNumber}`} className="hover:underline">{place.phoneNumber}</a></p>}
                     {place.detailedHours && place.detailedHours.length > 0 && (
                         <div className="flex items-start gap-1.5">

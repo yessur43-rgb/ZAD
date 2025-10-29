@@ -28,8 +28,8 @@ const HealthAssessment: React.FC<{ assessment?: GeminiResponse['التقييم_�
     if(assessment?.ملخص && assessment.نقاط.length === 0){
         return (
              <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-600">
-                <h4 className="font-bold text-lg text-gray-800 dark:text-gray-200">التقييم الصحي</h4>
-                <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{assessment.ملخص}</p>
+                <h4 className="font-bold text-lg text-gray-900 dark:text-gray-100">التقييم الصحي</h4>
+                <p className="mt-2 text-sm text-gray-700 dark:text-gray-300">{assessment.ملخص}</p>
             </div>
         )
     }
@@ -46,8 +46,8 @@ const HealthAssessment: React.FC<{ assessment?: GeminiResponse['التقييم_�
 
   return (
     <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-600">
-      <h4 className="font-bold text-lg text-gray-800 dark:text-gray-200">التقييم الصحي</h4>
-      <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{assessment.ملخص}</p>
+      <h4 className="font-bold text-lg text-gray-900 dark:text-gray-100">التقييم الصحي</h4>
+      <p className="mt-2 text-sm text-gray-700 dark:text-gray-300">{assessment.ملخص}</p>
       <ul className="mt-3 space-y-2">
         {assessment.نقاط.map((point, index) => {
           const { color, Icon } = getPointDetails(point.النوع);
@@ -103,8 +103,8 @@ const ResultCard: React.FC<ResultCardProps> = ({ result }) => {
 
       {result.الأدلة && result.الأدلة.length > 0 && (
         <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-600">
-          <h4 className="font-bold text-lg text-gray-800 dark:text-gray-200">الأدلة:</h4>
-          <ul className="mt-2 list-disc list-inside space-y-1 text-gray-600 dark:text-gray-400">
+          <h4 className="font-bold text-lg text-gray-900 dark:text-gray-100">الأدلة:</h4>
+          <ul className="mt-2 list-disc list-inside space-y-1 text-gray-700 dark:text-gray-300">
             {result.الأدلة.map((evidence, index) => (
               <li key={index}>
                 {isEvidenceClickable ? (
@@ -126,7 +126,7 @@ const ResultCard: React.FC<ResultCardProps> = ({ result }) => {
       <HealthAssessment assessment={result.التقييم_الصحي} />
 
       {result.الحالة === 'مجهول' && (
-          <p className="mt-4 text-xs text-center text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700/50 p-2 rounded-md">
+          <p className="mt-4 text-xs text-center text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-700/50 p-2 rounded-md">
             نصيحة: عند الشك، يفضل ترك المنتج أو التواصل مع الشركة المصنعة للتأكد من مصدر المكونات.
           </p>
       )}

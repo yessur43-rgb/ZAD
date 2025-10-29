@@ -168,10 +168,10 @@ const NearbyView: React.FC = () => {
                 >
                     <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 relative">
                         <button onClick={() => setSelectedPlace(null)} className="absolute top-2 left-2 text-gray-400">&times;</button>
-                        <h3 className="font-bold text-lg text-gray-900 dark:text-white pr-4">{selectedPlace.name}</h3>
+                        <h3 className="font-bold text-lg text-gray-900 dark:text-gray-100 pr-4">{selectedPlace.name}</h3>
                         {selectedPlace.rating && <StarRating rating={selectedPlace.rating} />}
                         {selectedPlace.address && (
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 flex items-center gap-1.5">
+                            <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 flex items-center gap-1.5">
                                 <MapPinIcon className="w-3 h-3"/> {selectedPlace.address}
                             </p>
                         )}

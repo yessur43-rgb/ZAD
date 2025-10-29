@@ -1,13 +1,17 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { findActivities } from '../services/geminiService';
-import { Activity } from '../types';
+import { Activity, UserLocation } from '../types';
 import ActivityCard from './ActivityCard';
 import { LoadingSpinner } from './icons/LoadingSpinner';
 import { ActivityIcon } from './icons/ActivityIcon';
 import { FindItIcon } from './icons/FindItIcon';
 import { LocationMarkerIcon } from './icons/LocationMarkerIcon';
 
-const ActivitiesFinder: React.FC = () => {
+interface ActivitiesFinderProps {
+    location: UserLocation | null;
+}
+
+const ActivitiesFinder: React.FC<ActivitiesFinderProps> = ({ location }) => {
     const [activities, setActivities] = useState<Activity[]>([]);
     const [filteredActivities, setFilteredActivities] = useState<Activity[]>([]);
     const [categories, setCategories] = useState<string[]>([]);
@@ -19,8 +23,17 @@ const ActivitiesFinder: React.FC = () => {
     const [searchQuery, setSearchQuery] = useState<string>('');
     const [locationQuery, setLocationQuery] = useState<string>('');
     const [filterTerm, setFilterTerm] = useState<string>('');
+    
+    const handleSearch = useCallback(async () => {
+        const query = searchQuery.trim() || undefined;
+        const locationName = locationQuery.trim();
+        const searchLocation = locationName ? locationName : location;
 
-    const performSearch = useCallback(async (location: { latitude: number; longitude: number } | string, query?: string) => {
+        if (!searchLocation) {
+            setError('يرجى إدخال موقع في حقل البحث أو تمكين الوصول إلى الموقع من الشاشة الرئيسية.');
+            return;
+        }
+
         setHasSearched(true);
         setIsLoading(true);
         setError(null);
@@ -31,7 +44,7 @@ const ActivitiesFinder: React.FC = () => {
         setFilterTerm('');
 
         try {
-            const result = await findActivities(location, query);
+            const result = await findActivities(searchLocation, query);
             setActivities(result);
             if (result.length > 0) {
                 const uniqueCategories = ['الكل', ...Array.from(new Set(result.map(a => a.category)))];
@@ -43,35 +56,7 @@ const ActivitiesFinder: React.FC = () => {
         } finally {
             setIsLoading(false);
         }
-    }, []);
-
-    const handleSearch = useCallback(() => {
-        const query = searchQuery.trim() || undefined;
-        const locationName = locationQuery.trim();
-
-        if (locationName) {
-            performSearch(locationName, query);
-        } else {
-            if (!navigator.geolocation) {
-                setError('خاصية تحديد الموقع الجغرافي غير مدعومة. يرجى إدخال موقع يدويًا.');
-                return;
-            }
-            setIsLoading(true);
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    performSearch({
-                        latitude: position.coords.latitude,
-                        longitude: position.coords.longitude,
-                    }, query);
-                },
-                (err) => {
-                    console.error(err);
-                    setError('لم نتمكن من الوصول إلى موقعك. يرجى إدخال موقع في حقل البحث.');
-                    setIsLoading(false);
-                }
-            );
-        }
-    }, [searchQuery, locationQuery, performSearch]);
+    }, [searchQuery, locationQuery, location]);
 
     useEffect(() => {
         let tempActivities = activities;
@@ -97,7 +82,7 @@ const ActivitiesFinder: React.FC = () => {
 
         if (isLoading) {
             return (
-                <div className="text-center text-gray-500 dark:text-gray-400 py-10">
+                <div className="text-center text-gray-600 dark:text-gray-400 py-10">
                     <LoadingSpinner />
                     <p className="mt-2">جاري البحث عن أنشطة...</p>
                 </div>
@@ -108,16 +93,13 @@ const ActivitiesFinder: React.FC = () => {
             return (
                 <div className="text-center text-red-500 bg-red-100 dark:bg-red-900/50 p-4 rounded-lg">
                     <p>{error}</p>
-                    <button onClick={handleSearch} className="mt-4 px-4 py-2 bg-emerald-600 text-white font-bold rounded-lg">
-                        حاول مرة أخرى
-                    </button>
                 </div>
             );
         }
         
         if (activities.length === 0) {
             return (
-                <div className="text-center text-gray-500 dark:text-gray-400 py-10">
+                <div className="text-center text-gray-600 dark:text-gray-400 py-10">
                     <ActivityIcon className="w-16 h-16 mx-auto mb-4" />
                     <p>لم يتم العثور على أي أنشطة تطابق بحثك.</p>
                 </div>
@@ -139,6 +121,7 @@ const ActivitiesFinder: React.FC = () => {
                             <FindItIcon className="w-5 h-5 text-gray-400" />
                         </div>
                     </div>
+                    {/* FIX: The '-ms-overflow-style' CSS property must be in camelCase ('msOverflowStyle') for React's style prop. */}
                     <div className="flex overflow-x-auto scrollbar-hide pb-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                         {categories.map(category => (
                             <button
@@ -147,7 +130,7 @@ const ActivitiesFinder: React.FC = () => {
                                 className={`flex-shrink-0 px-4 py-2 text-sm font-semibold rounded-full transition-colors duration-200 whitespace-nowrap mx-1 ${
                                     selectedCategory === category
                                         ? 'bg-emerald-600 text-white'
-                                        : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600'
+                                        : 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600'
                                 }`}
                             >
                                 {category}
@@ -162,7 +145,7 @@ const ActivitiesFinder: React.FC = () => {
                         ))}
                     </div>
                 ) : (
-                    <div className="text-center text-gray-500 dark:text-gray-400 py-10">
+                    <div className="text-center text-gray-600 dark:text-gray-400 py-10">
                         <p>لا توجد أنشطة تطابق تصفيتك في فئة "{selectedCategory}".</p>
                     </div>
                 )}
@@ -173,8 +156,8 @@ const ActivitiesFinder: React.FC = () => {
     return (
         <div className="w-full max-w-4xl mx-auto">
             <div className="text-center mb-6">
-                <h2 className="text-2xl font-bold text-gray-800 dark:text-white">مستكشف الأنشطة</h2>
-                <p className="text-gray-500 dark:text-gray-400 mt-1">ابحث عن أنشطة في أي مكان في العالم.</p>
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">مستكشف الأنشطة</h2>
+                <p className="text-gray-600 dark:text-gray-300 mt-1">ابحث عن أنشطة في أي مكان في العالم.</p>
             </div>
 
             <div className="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6 space-y-3">
@@ -208,7 +191,7 @@ const ActivitiesFinder: React.FC = () => {
                         </div>
                     </div>
                 </div>
-                 <p className="text-xs text-center text-gray-500 dark:text-gray-400">اترك حقل الموقع فارغًا للبحث بالقرب منك.</p>
+                 <p className="text-xs text-center text-gray-600 dark:text-gray-400">اترك حقل الموقع فارغًا للبحث بالقرب من {location?.name || 'موقعك الحالي'}.</p>
                  <button
                     onClick={handleSearch}
                     className="w-full px-6 py-3 bg-emerald-600 text-white font-bold rounded-lg hover:bg-emerald-700 disabled:bg-emerald-300 transition flex items-center justify-center gap-2"

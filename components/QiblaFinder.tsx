@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useQibla } from '../hooks/useQibla';
 import { QiblaIcon } from './icons/QiblaIcon';
@@ -99,14 +100,14 @@ const QiblaFinder: React.FC = () => {
                      <div className={`absolute -top-6 left-1/2 -translate-x-1/2 w-12 h-12 rounded-full border-4 transition-colors duration-300 ${isAligned ? 'border-emerald-400' : 'border-transparent'}`} />
                 </div>
                 <div className="text-center mt-6">
-                    <p className="text-lg text-gray-700 dark:text-gray-300">
+                    <p className="text-lg text-gray-800 dark:text-gray-200">
                         {isAligned ? "أنت الآن في اتجاه القبلة" : "قم بتوجيه هاتفك حتى يتطابق المؤشر مع الخط العلوي"}
                     </p>
-                    <div className="mt-2 text-2xl font-bold text-gray-800 dark:text-white">
+                    <div className="mt-2 text-2xl font-bold text-gray-900 dark:text-gray-100">
                         {qiblaDirection.toFixed(0)}°
                     </div>
                      {distance !== null && (
-                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                             تبعد عن الكعبة حوالي {Math.round(distance).toLocaleString('ar-SA')} كم
                         </p>
                     )}

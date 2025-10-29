@@ -53,8 +53,8 @@ const MenuAnalyzer: React.FC = () => {
     <div className="flex flex-col items-center w-full">
       <div className="w-full max-w-md">
         <div className="text-center mb-6">
-          <h2 className="text-2xl font-bold text-gray-800 dark:text-white">تحليل قائمة الطعام</h2>
-          <p className="text-gray-500 dark:text-gray-400 mt-1">صوّر قائمة الطعام وسأساعدك في تحديد الخيارات الحلال.</p>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">تحليل قائمة الطعام</h2>
+          <p className="text-gray-600 dark:text-gray-300 mt-1">صوّر قائمة الطعام وسأساعدك في تحديد الخيارات الحلال.</p>
         </div>
 
         <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 flex flex-col items-center text-center">
@@ -83,7 +83,7 @@ const MenuAnalyzer: React.FC = () => {
           ) : (
               <div className="flex flex-col items-center justify-center h-48">
                   <MenuIcon className="w-16 h-16 text-gray-400 dark:text-gray-500" />
-                  <p className="mt-2 text-sm text-gray-500">اسحب وأفلت صورة القائمة هنا، أو انقر للبحث</p>
+                  <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">اسحب وأفلت صورة القائمة هنا، أو انقر للبحث</p>
               </div>
           )}
         </div>
@@ -112,7 +112,7 @@ const MenuAnalyzer: React.FC = () => {
 
       <div className="mt-8 w-full max-w-2xl">
         {isLoading && (
-            <div className="text-center text-gray-500">
+            <div className="text-center text-gray-600 dark:text-gray-400">
                 <p>...يتم تحليل القائمة، يرجى الانتظار</p>
             </div>
         )}

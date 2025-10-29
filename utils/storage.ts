@@ -1,62 +1,8 @@
-import { CommunityTip, TipCategory, HistoryItem, GeminiResponse } from '../types';
+// FIX: Removed unused types `CommunityTip` and `TipCategory` as they are not defined in `types.ts`.
+import { HistoryItem, GeminiResponse } from '../types';
 
-const COMMUNITY_TIPS_KEY_PREFIX = 'communityTips_';
+// FIX: Removed unused "Community Tip" functions. The functionality seems to have been replaced by the "Community Hub" feature, which is handled in `services/communityService.ts`.
 
-// --- START: Community Tip Functions ---
-
-export const getCommunityTips = (location: string): CommunityTip[] => {
-    const key = `${COMMUNITY_TIPS_KEY_PREFIX}${location.toLowerCase().trim()}`;
-    try {
-        const tipsJson = localStorage.getItem(key);
-        if (tipsJson) {
-            const tips: CommunityTip[] = JSON.parse(tipsJson);
-            // Sort by upvotes desc, then by timestamp desc
-            return tips.sort((a, b) => b.upvotes - a.upvotes || b.timestamp - a.timestamp);
-        }
-    } catch (error) {
-        console.error('Failed to retrieve community tips:', error);
-    }
-    return [];
-};
-
-const saveTipsForLocation = (location: string, tips: CommunityTip[]): void => {
-    const key = `${COMMUNITY_TIPS_KEY_PREFIX}${location.toLowerCase().trim()}`;
-    try {
-        localStorage.setItem(key, JSON.stringify(tips));
-    } catch (error) {
-        console.error('Failed to save community tips:', error);
-    }
-};
-
-export const saveCommunityTip = (location: string, content: string, category: TipCategory): CommunityTip[] => {
-    const currentTips = getCommunityTips(location);
-    const newTip: CommunityTip = {
-        id: new Date().toISOString(),
-        content,
-        category,
-        timestamp: Date.now(),
-        upvotes: 0,
-    };
-    const updatedTips = [newTip, ...currentTips];
-    saveTipsForLocation(location, updatedTips);
-    return updatedTips;
-};
-
-export const upvoteCommunityTip = (location: string, tipId: string): CommunityTip[] => {
-    const currentTips = getCommunityTips(location);
-    const tipIndex = currentTips.findIndex(tip => tip.id === tipId);
-    if (tipIndex > -1) {
-        currentTips[tipIndex].upvotes += 1;
-        saveTipsForLocation(location, currentTips);
-        // Return a new sorted array to trigger re-renders in React components
-        return [...currentTips].sort((a, b) => b.upvotes - a.upvotes || b.timestamp - a.timestamp);
-    }
-    return currentTips;
-};
-
-// --- END: Community Tip Functions ---
-
-// FIX: Add scan history management functions
 // --- START: Scan History Functions ---
 
 const SCAN_HISTORY_KEY = 'scanHistory';

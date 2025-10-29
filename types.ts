@@ -1,72 +1,77 @@
-// Defines the Halal status in English, used for logic and keys.
+// --- General & Location ---
+export interface UserLocation {
+  latitude: number;
+  longitude: number;
+  name: string;
+}
+
+export type WeatherIconType = 'sunny' | 'cloudy' | 'partly-cloudy' | 'rainy';
+
+// --- Gemini & API Responses ---
+
+export type HalalStatusArabic = 'حلال' | 'حرام' | 'مجهول' | 'غير معلوم';
 export type HalalStatus = 'Halal' | 'Haram' | 'Mushbooh' | 'Unknown';
 
-// Defines the Halal status in Arabic, used for display.
-export type HalalStatusArabic = 'حلال' | 'حرام' | 'مجهول' | 'غير معلوم';
-
-// Represents a single point in the health assessment section.
 export interface HealthPoint {
-  النوع: 'إيجابي' | 'سلبي' | 'معلومة';
-  نقطة: string;
+    'النوع': 'إيجابي' | 'سلبي' | 'معلومة';
+    'نقطة': string;
 }
 
-// Represents the main response structure from the Gemini API for product analysis.
 export interface GeminiResponse {
-  الحالة: HalalStatusArabic;
-  السبب: string;
-  الأدلة: string[];
-  التقييم_الصحي?: {
-    ملخص: string;
-    نقاط: HealthPoint[];
-  };
+    'الحالة': HalalStatusArabic;
+    'السبب': string;
+    'الأدلة': string[];
+    'التقييم_الصحي'?: {
+        'ملخص': string;
+        'نقاط': HealthPoint[];
+    };
 }
 
-// Represents a single item in the user's scan history.
-export interface HistoryItem {
-  id: string;
-  timestamp: number;
-  type: 'image' | 'barcode';
-  identifier: string;
-  result: GeminiResponse;
+// --- Chat & Places ---
+export interface ChatMessage {
+    role: 'user' | 'model';
+    parts: { text: string }[];
+    places?: Place[];
 }
 
-// Defines the categories for place searches in the ChatBot.
-export type SearchCategory = 'restaurants' | 'supermarkets' | 'pharmacies' | 'mosques';
-
-// Represents a geographical place with details.
 export interface Place {
     name: string;
+    url: string;
     address?: string;
-    distance?: string;
     rating?: number;
     userRatingsTotal?: number;
-    url?: string;
-    cuisine?: string;
-    closingTime?: string;
-    location?: { latitude: number, longitude: number };
+    location?: { latitude: number; longitude: number };
     phoneNumber?: string;
     priceLevel?: string;
     detailedHours?: string[];
+    closingTime?: string;
+    distance?: string; // Added from ChatBot usage
 }
 
-// Represents a message in the ChatBot conversation.
-export interface ChatMessage {
-  role: 'user' | 'model';
-  parts: { text: string }[];
-  places?: Place[];
-  category?: SearchCategory;
-}
+export type SearchCategory = 'restaurants' | 'supermarkets' | 'pharmacies' | 'mosques';
 
-// Represents the response for halal dish suggestions for a restaurant.
-export interface DishSuggestionResponse {
-  dishes: {
+// --- Restaurant & Menu Analysis ---
+export interface Dish {
     name: string;
     description: string;
-  }[];
-  source_description: string;
 }
 
-// Represents a single parking suggestion.
+export interface DishSuggestionResponse {
+    dishes: Dish[];
+    source_description: string;
+}
+
+export interface HalalHaramItem {
+    name: string;
+    note: string;
+}
+
+export interface HalalHaramListResponse {
+    halalItems: HalalHaramItem[];
+    haramOrMushboohItems: HalalHaramItem[];
+    source_description: string;
+}
+
 export interface ParkingInfo {
     name: string;
     address: string;
@@ -77,84 +82,114 @@ export interface ParkingInfo {
     notes?: string;
 }
 
-// Represents the response for parking suggestions.
 export interface ParkingSuggestionResponse {
     parkingSuggestions: ParkingInfo[];
 }
 
-// Defines the categories for the "Find It" feature.
+
+// --- "Find It" Feature ---
 export type FindItCategory = 'product' | 'vignette' | 'identify';
 
-// Represents the response for finding a product in nearby stores.
 export interface FindItResponse {
     identifiedProduct: string;
     aiResponseText: string;
     places: Place[];
 }
 
-// Represents the detailed response for vignette (road tax sticker) information.
-export interface VignetteDetailsResponse {
-    details: {
-        country: string;
-        generalDescription: string;
-        prices: {
-            validity: string;
-            price: string;
-            vehicleType: string;
-        }[];
-        purchaseLocations: string[];
-        officialWebsite?: string;
-        importantNotes: string[];
-        entryPointExamples: {
-            comingFrom: string;
-            locations: string[];
-        }[];
-    };
-    sources: {
-        title: string;
-        uri: string;
-    }[];
+export interface VignettePrice {
+    validity: string;
+    price: string;
+    vehicleType: string;
 }
 
-// --- START: Identification Types ---
+export interface VignetteEntryPoint {
+    comingFrom: string;
+    locations: string[];
+}
+
+export interface VignetteDetails {
+    country: string;
+    generalDescription: string;
+    prices: VignettePrice[];
+    purchaseLocations: string[];
+    officialWebsite?: string;
+    importantNotes: string[];
+    entryPointExamples?: VignetteEntryPoint[];
+}
+
+export interface VignetteDetailsResponse {
+    details: VignetteDetails;
+    sources?: { title: string, uri: string }[];
+}
+
 export interface IdentificationResponse {
     name: string;
     description: string;
     address?: string;
     googleMapsUrl?: string;
 }
-// --- END: Identification Types ---
 
-// Represents a single item in the Halal/Haram analysis list.
-export interface HalalStatusItem {
+// --- History ---
+export interface HistoryItem {
+    id: string;
+    timestamp: number;
+    type: 'image' | 'barcode';
+    identifier: string;
+    result: GeminiResponse;
+}
+
+// --- Activities Finder ---
+export type ActivityStatus = 'مفتوح' | 'يغلق قريباً' | 'مغلق';
+
+export interface Activity {
     name: string;
-    note: string;
+    description: string;
+    category: string;
+    address: string;
+    price: string;
+    operatingHours: Record<string, string> | string;
+    status?: ActivityStatus;
+    statusNote?: string;
+    url?: string;
 }
 
-// Represents the response for the Halal/Haram list analysis of a place.
-export interface HalalHaramListResponse {
-    halalItems: HalalStatusItem[];
-    haramOrMushboohItems: HalalStatusItem[];
-    source_description: string;
+export interface ActivityResponse {
+    activities: Activity[];
 }
 
-// --- START: Travel Planner Types ---
+// --- Nearby Places for Map ---
+export type PlaceCategory = 'restaurant' | 'cafe' | 'sight' | 'shop' | 'other';
+export interface MapPlace {
+    name: string;
+    latitude: number;
+    longitude: number;
+    category: PlaceCategory;
+    address?: string;
+    rating?: number;
+    url?: string;
+}
 
+export interface NearbyPlacesResponse {
+    places: MapPlace[];
+}
+
+
+// --- Travel Planner ---
 export type ActivityType = 'EAT' | 'SIGHTSEEING' | 'SHOPPING' | 'ACTIVITY' | 'TRAVEL' | 'PRAYER';
 
 export interface Suggestion {
     name: string;
     suggestionDescription: string;
     address?: string;
-    halalAssurance?: string;
     rating?: number;
     userRatingsTotal?: number;
     url?: string;
+    halalAssurance?: string;
 }
 
 export interface TripFrameworkStep {
-    timeOfDay: string; // e.g., "Morning (9:00 AM - 12:00 PM)"
-    description: string; // e.g., "Explore the Old City"
+    timeOfDay: string;
+    description: string;
     activityType: ActivityType;
     suggestions?: Suggestion[];
     chosenSuggestion?: Suggestion;
@@ -164,7 +199,31 @@ export interface ItineraryPlan {
     locationName: string;
     framework: TripFrameworkStep[];
 }
-// FIX: Add TravelGuideResponse type definition for the comprehensive travel guide feature.
+
+// --- Phrase Translator ---
+export interface Phrase {
+    original: string;
+    translated: string;
+    phonetic: string;
+}
+
+export interface PhraseCategory {
+    categoryName: string;
+    phrases: Phrase[];
+}
+
+export interface CommonPhrasesResponse {
+    languageName: string;
+    langCode: string;
+    categories: PhraseCategory[];
+}
+
+export interface PhraseTranslation {
+    translated: string;
+    phonetic: string;
+}
+
+// --- Travel Guide ---
 export interface TravelGuideResponse {
     locationInfo: {
         city: string;
@@ -190,21 +249,13 @@ export interface TravelGuideResponse {
         wifi?: string;
     };
     healthAndSafety: {
-        emergencyContacts: {
-            service: string;
-            number: string;
-            note?: string;
-        }[];
+        emergencyContacts: { service: string; number: string; note?: string }[];
         healthTips: string[];
         safetyNotes?: string[];
     };
     localCulture: {
         etiquette: string[];
-        helpfulPhrases: {
-            phrase: string;
-            translation: string;
-            pronunciation: string;
-        }[];
+        helpfulPhrases: { phrase: string; translation: string; pronunciation: string }[];
     };
     muslimTravelerInfo: {
         halalFoodAvailability: string;
@@ -216,81 +267,32 @@ export interface TravelGuideResponse {
         drinkingWater: string;
     };
 }
-// --- END: Travel Planner Types ---
 
-// --- START: Nearby Places Types ---
-export type PlaceCategory = 'restaurant' | 'cafe' | 'sight' | 'shop' | 'other';
+// --- Community Hub ---
+export interface Attachment {
+  id: string;
+  name: string;
+  type: string; // 'image/jpeg', 'video/mp4', 'application/pdf'
+  data: string; // base64 data url
+}
 
-export interface MapPlace {
+export interface CommunityPost {
+  id: string;
+  authorId: string;
+  content: string;
+  timestamp: number;
+  attachments?: Attachment[];
+  location?: {
     name: string;
-    latitude: number;
-    longitude: number;
-    category: PlaceCategory;
-    address?: string;
-    rating?: number;
-    url?: string;
+    lat: number;
+    lon: number;
+  };
 }
 
-export interface NearbyPlacesResponse {
-    places: MapPlace[];
+export interface Community {
+  id: string;
+  name: string;
+  description: string;
+  creatorId: string;
+  posts: CommunityPost[];
 }
-// --- END: Nearby Places Types ---
-
-// --- START: Weather Icon Type ---
-export type WeatherIconType = 'sunny' | 'cloudy' | 'partly-cloudy' | 'rainy' | 'snowy' | 'windy';
-// --- END: Weather Icon Type ---
-
-
-// --- START: Activities Finder Types ---
-
-export type ActivityStatus = 'مفتوح' | 'يغلق قريباً' | 'مغلق';
-
-export interface Activity {
-    name: string;
-    description: string;
-    category: string;
-    address: string;
-    price: string;
-    operatingHours: Record<string, string> | string;
-    status?: ActivityStatus;
-    statusNote?: string;
-    url?: string;
-    location?: { latitude: number; longitude: number };
-}
-
-export interface ActivityResponse {
-    activities: Activity[];
-}
-
-// --- END: Activities Finder Types ---
-
-// --- START: Phrase Translator Types ---
-export interface Phrase {
-    original: string;
-    translated: string;
-    phonetic: string;
-}
-
-export interface PhraseCategory {
-    categoryName: string;
-    phrases: Phrase[];
-}
-
-export interface CommonPhrasesResponse {
-    languageName: string;
-    langCode: string;
-    categories: PhraseCategory[];
-}
-// --- END: Phrase Translator Types ---
-
-// --- START: Community Hub Types ---
-export type TipCategory = 'food' | 'sights' | 'transport' | 'general';
-
-export interface CommunityTip {
-    id: string;
-    content: string;
-    category: TipCategory;
-    timestamp: number;
-    upvotes: number;
-}
-// --- END: Community Hub Types ---

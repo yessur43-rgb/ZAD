@@ -31,8 +31,8 @@ const IngredientGuide: React.FC = () => {
     <div className="flex flex-col items-center p-4">
       <div className="w-full max-w-2xl">
         <div className="text-center mb-6">
-          <h2 className="text-2xl font-bold text-gray-800 dark:text-white">دليل المكونات الحلال</h2>
-          <p className="text-gray-500 dark:text-gray-400 mt-1">ابحث عن أي مكون غذائي لمعرفة مصدره وحكمه الشرعي.</p>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">دليل المكونات الحلال</h2>
+          <p className="text-gray-600 dark:text-gray-300 mt-1">ابحث عن أي مكون غذائي لمعرفة مصدره وحكمه الشرعي.</p>
         </div>
 
         <div className="flex gap-2">
@@ -62,19 +62,19 @@ const IngredientGuide: React.FC = () => {
 
         <div className="mt-8 w-full">
           {isLoading && (
-            <div className="text-center text-gray-500 dark:text-gray-400">
+            <div className="text-center text-gray-600 dark:text-gray-400">
               <p>...يتم البحث، يرجى الانتظار</p>
             </div>
           )}
           {error && <p className="text-red-500 bg-red-100 dark:bg-red-900/50 p-3 rounded-lg text-center">{error}</p>}
           {result && (
             <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 animate-fade-in">
-              <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-3">نتائج البحث عن: "{searchedTerm}"</h3>
-              <p className="text-gray-600 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">{result}</p>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-3">نتائج البحث عن: "{searchedTerm}"</h3>
+              <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">{result}</p>
             </div>
           )}
           {!isLoading && !result && !error && (
-             <div className="text-center text-gray-400 dark:text-gray-500 pt-8">
+             <div className="text-center text-gray-500 dark:text-gray-500 pt-8">
                 <IngredientIcon className="w-16 h-16 mx-auto mb-4" />
                 <p>أدخل اسم المكون أعلاه لبدء البحث.</p>
              </div>

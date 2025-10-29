@@ -1,23 +1,28 @@
 import React, { useState } from 'react';
 import { findPlacesOnRoute } from '../services/geminiService';
-import { Place } from '../types';
+import { Place, UserLocation } from '../types';
 import { LoadingSpinner } from './icons/LoadingSpinner';
 import { LocationMarkerIcon } from './icons/LocationMarkerIcon';
 import PlaceCard from './RestaurantCard';
 import { RestaurantIcon } from './icons/RestaurantIcon';
 import { MosqueIcon } from './icons/MosqueIcon';
 import { SightseeingIcon } from './icons/SightseeingIcon';
+import { CafeIcon } from './icons/CafeIcon';
 
 type RouteCategory = 'restaurants' | 'cafes' | 'mosques' | 'sights';
 
 const categoryConfig: Record<RouteCategory, { label: string; query: string; Icon: React.FC<any> }> = {
     restaurants: { label: 'مطاعم حلال', query: 'مطاعم حلال', Icon: RestaurantIcon },
-    cafes: { label: 'مقاهي', query: 'مقاهي', Icon: RestaurantIcon },
+    cafes: { label: 'مقاهي', query: 'مقاهي', Icon: CafeIcon },
     mosques: { label: 'مساجد', query: 'مساجد أو مصليات', Icon: MosqueIcon },
-    sights: { label: 'استراحات وقرى', query: 'قرى جميلة أو استراحات على الطريق', Icon: SightseeingIcon },
+    sights: { label: 'استراحات وخدمات', query: 'استراحات أو محطات خدمة على الطريق', Icon: SightseeingIcon },
 };
 
-const OnMyWay: React.FC = () => {
+interface OnMyWayProps {
+    location: UserLocation | null;
+}
+
+const OnMyWay: React.FC<OnMyWayProps> = ({ location }) => {
     const [startPoint, setStartPoint] = useState('');
     const [destination, setDestination] = useState('');
     const [activeTrip, setActiveTrip] = useState<{ start: string; end: string } | null>(null);
@@ -28,17 +33,11 @@ const OnMyWay: React.FC = () => {
     const [currentCategory, setCurrentCategory] = useState<RouteCategory | null>(null);
 
     const handleUseCurrentLocation = () => {
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    setStartPoint(`موقعي الحالي (${position.coords.latitude.toFixed(4)}, ${position.coords.longitude.toFixed(4)})`);
-                },
-                (err) => {
-                    setError('لم نتمكن من الوصول إلى موقعك. يرجى إدخاله يدويًا.');
-                }
-            );
+        if (location) {
+            setStartPoint('موقعي الحالي');
+            setError(null);
         } else {
-            setError('خاصية تحديد الموقع الجغرافي غير مدعومة في هذا المتصفح.');
+            setError('الموقع الحالي غير متوفر. يرجى تمكين الوصول إلى الموقع من الشاشة الرئيسية.');
         }
     };
 
@@ -62,7 +61,8 @@ const OnMyWay: React.FC = () => {
         setCurrentCategory(category);
 
         try {
-            const { places } = await findPlacesOnRoute(activeTrip.start, activeTrip.end, categoryConfig[category].query);
+            const locationForApi = activeTrip.start === 'موقعي الحالي' ? location : null;
+            const { places } = await findPlacesOnRoute(activeTrip.start, activeTrip.end, categoryConfig[category].query, locationForApi);
             setResults(places);
         } catch (err) {
             setError(err instanceof Error ? err.message : 'حدث خطأ غير متوقع.');
@@ -76,10 +76,10 @@ const OnMyWay: React.FC = () => {
             <div className="flex flex-col h-full animate-fade-in">
                 <div className="p-4 border-b border-gray-200 dark:border-gray-700">
                     <div className="text-center">
-                        <p className="text-sm text-gray-500 dark:text-gray-400">في طريقك من</p>
-                        <p className="font-bold text-gray-800 dark:text-white truncate">{activeTrip.start}</p>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">إلى</p>
-                        <p className="font-bold text-gray-800 dark:text-white truncate">{activeTrip.end}</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">في طريقك من</p>
+                        <p className="font-bold text-gray-900 dark:text-gray-100 truncate">{activeTrip.start === 'موقعي الحالي' && location ? location.name : activeTrip.start}</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">إلى</p>
+                        <p className="font-bold text-gray-900 dark:text-gray-100 truncate">{activeTrip.end}</p>
                     </div>
                      <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-2">
                         {(Object.keys(categoryConfig) as RouteCategory[]).map(key => {
@@ -92,7 +92,7 @@ const OnMyWay: React.FC = () => {
                                     className={`p-3 text-sm font-semibold rounded-lg flex flex-col items-center justify-center gap-2 transition-colors duration-200 disabled:opacity-50 ${
                                         currentCategory === key
                                         ? 'bg-emerald-600 text-white shadow-md'
-                                        : 'bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200'
+                                        : 'bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200'
                                     }`}
                                 >
                                     <Icon className="w-6 h-6" />
@@ -127,7 +127,7 @@ const OnMyWay: React.FC = () => {
                         </div>
                     )}
                     {!isLoading && results.length === 0 && currentCategory && (
-                        <div className="text-center text-gray-500 dark:text-gray-400 pt-10">
+                        <div className="text-center text-gray-600 dark:text-gray-400 pt-10">
                             <p>لم يتم العثور على أماكن تطابق بحثك على هذا الطريق.</p>
                         </div>
                     )}
@@ -140,8 +140,8 @@ const OnMyWay: React.FC = () => {
          <div className="flex flex-col items-center justify-center p-4 h-full animate-fade-in">
             <div className="w-full max-w-md">
                  <div className="text-center mb-6">
-                    <h2 className="text-2xl font-bold text-gray-800 dark:text-white">على طريقي</h2>
-                    <p className="text-gray-500 dark:text-gray-400 mt-1">ابحث عن مطاعم، استراحات، والمزيد على طول مسار رحلتك.</p>
+                    <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">على طريقي</h2>
+                    <p className="text-gray-600 dark:text-gray-300 mt-1">ابحث عن مطاعم، استراحات، والمزيد على طول مسار رحلتك.</p>
                 </div>
                 <div className="space-y-4">
                      <div>
@@ -155,7 +155,7 @@ const OnMyWay: React.FC = () => {
                                 className="flex-grow p-3 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-r-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
                                 placeholder="مثال: الرياض"
                             />
-                            <button onClick={handleUseCurrentLocation} className="px-3 bg-gray-200 dark:bg-gray-600 border border-l-0 border-gray-300 dark:border-gray-500 rounded-l-lg hover:bg-gray-300 dark:hover:bg-gray-500" title="استخدام موقعي الحالي">
+                            <button onClick={handleUseCurrentLocation} className="px-3 bg-gray-200 dark:bg-gray-600 border border-l-0 border-gray-300 dark:border-gray-500 rounded-l-lg hover:bg-gray-300 dark:hover:bg-gray-500 disabled:opacity-50" title="استخدام موقعي الحالي" disabled={!location}>
                                 <LocationMarkerIcon className="w-5 h-5 text-gray-600 dark:text-gray-300" />
                             </button>
                         </div>

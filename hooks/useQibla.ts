@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from 'react';
 
 // Coordinates of the Kaaba in Mecca
@@ -98,19 +99,19 @@ export const useQibla = () => {
                         if (permissionState === 'granted') {
                             window.addEventListener('deviceorientation', handleOrientation);
                         } else {
-                            setError('DeviceOrientation permission not granted.');
+                            setError('DeviceOrientation: تم رفض إذن الوصول إلى مستشعرات الحركة.');
                         }
                     })
                     .catch((err: any) => {
                         console.error(err);
-                        setError('DeviceOrientation permission request failed.');
+                        setError('DeviceOrientation: فشل طلب إذن الوصول إلى مستشعرات الحركة.');
                     });
             } else {
                 // For non-iOS 13+ devices
                 window.addEventListener('deviceorientation', handleOrientation);
             }
         } else {
-            setError('DeviceOrientation not supported.');
+            setError('DeviceOrientation: مستشعرات الحركة غير مدعومة في هذا الجهاز أو المتصفح.');
         }
 
 

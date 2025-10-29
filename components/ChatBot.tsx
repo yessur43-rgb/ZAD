@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { findPlaces } from '../services/geminiService';
-import { ChatMessage, Place, SearchCategory } from '../types';
+import { ChatMessage, Place, SearchCategory, UserLocation } from '../types';
 import { LoadingSpinner } from './icons/LoadingSpinner';
 import PlaceCard from './RestaurantCard';
 import { RestaurantIcon } from './icons/RestaurantIcon';
@@ -26,42 +26,28 @@ const quickSuggestions: { [key in SearchCategory]: string[] } = {
     mosques: ['مسجد قريب', 'أوقات الصلاة', 'مسجد جامع', 'مصلى للنساء'],
 };
 
-const ChatBot: React.FC = () => {
+interface ChatBotProps {
+  location: UserLocation | null;
+}
+
+const ChatBot: React.FC<ChatBotProps> = ({ location }) => {
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [input, setInput] = useState<string>('');
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
-    const [location, setLocation] = useState<{ latitude: number, longitude: number } | null>(null);
-    const [locationError, setLocationError] = useState<string | null>(null);
     const [category, setCategory] = useState<SearchCategory>('restaurants');
     const [placesToShowOnMap, setPlacesToShowOnMap] = useState<Place[] | null>(null);
     const [latestResponse, setLatestResponse] = useState<{ places: Place[], category: SearchCategory } | null>(null);
     const [sortedPlaces, setSortedPlaces] = useState<Place[]>([]);
     const chatEndRef = useRef<HTMLDivElement>(null);
     const chatContainerRef = useRef<HTMLDivElement>(null);
-
+    
     useEffect(() => {
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    setLocation({
-                        latitude: position.coords.latitude,
-                        longitude: position.coords.longitude,
-                    });
-                    setLocationError(null);
-                    setMessages([{ role: 'model', parts: [{ text: 'أهلاً بك! اختر فئة وحدد ما تبحث عنه.' }] }]);
-                },
-                (err) => {
-                    console.error(err);
-                    setLocationError('لم نتمكن من الوصول إلى موقعك. سيتم تعطيل البحث المستند إلى الموقع.');
-                    setMessages([{ role: 'model', parts: [{ text: 'أهلاً بك! اختر فئة واذكر مدينة أو منطقة لمساعدتك في العثور على أماكن حلال.' }] }]);
-                }
-            );
-        } else {
-            setLocationError('خاصية تحديد الموقع الجغرافي غير مدعومة في هذا المتصفح.');
-            setMessages([{ role: 'model', parts: [{ text: 'أهلاً بك! اختر فئة واذكر مدينة أو منطقة لمساعدتك في العثور على أماكن حلال.' }] }]);
-        }
-    }, []);
+        const initialMessage = location 
+            ? 'أهلاً بك! تم تحديد موقعك. اختر فئة وحدد ما تبحث عنه.'
+            : 'أهلاً بك! اختر فئة واذكر مدينة أو منطقة في بحثك لمساعدتك.';
+        setMessages([{ role: 'model', parts: [{ text: initialMessage }] }]);
+    }, [location]);
 
     useEffect(() => {
         chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -130,13 +116,48 @@ const ChatBot: React.FC = () => {
                 setLatestResponse(null);
             }}
             className={`flex-1 flex flex-col items-center justify-center gap-1 px-2 py-2 text-sm font-semibold rounded-md transition-colors duration-200 ${
-                category === value ? 'bg-white dark:bg-gray-800 text-emerald-600 shadow' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+                category === value ? 'bg-white dark:bg-gray-800 text-emerald-600 shadow' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
             }`}
         >
             <Icon className="w-6 h-6" />
             <span>{label}</span>
         </button>
     );
+
+     const renderInputArea = () => {
+        return (
+            <div className="p-4 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
+                <div className="space-x-2 text-right mb-2" dir="rtl">
+                    {quickSuggestions[category].map((sugg) => (
+                        <button
+                            key={sugg}
+                            onClick={() => submitMessage(sugg)}
+                            className="px-3 py-1 bg-emerald-50 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 rounded-full text-sm hover:bg-emerald-100 dark:hover:bg-emerald-800 transition"
+                        >
+                            {sugg}
+                        </button>
+                    ))}
+                </div>
+                <form onSubmit={(e) => { e.preventDefault(); submitMessage(input); }} className="flex gap-2">
+                    <input
+                        type="text"
+                        value={input}
+                        onChange={(e) => setInput(e.target.value)}
+                        placeholder={`ابحث عن ${categoryTranslations[category]}...`}
+                        className="flex-grow p-3 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                        disabled={isLoading}
+                    />
+                    <button
+                        type="submit"
+                        disabled={isLoading || !input.trim()}
+                        className="px-6 py-3 bg-emerald-600 text-white font-bold rounded-lg hover:bg-emerald-700 disabled:bg-emerald-300 transition"
+                    >
+                        {isLoading ? <LoadingSpinner /> : 'أرسل'}
+                    </button>
+                </form>
+            </div>
+        );
+    };
 
     return (
         <div className="flex flex-col h-full" dir="rtl">
@@ -162,7 +183,7 @@ const ChatBot: React.FC = () => {
                                 <div className={`max-w-md lg:max-w-lg px-4 py-2 rounded-2xl ${
                                     msg.role === 'user'
                                         ? 'bg-emerald-500 text-white rounded-br-none'
-                                        : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-bl-none'
+                                        : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-200 rounded-bl-none'
                                 }`}>
                                     <p>{msg.parts[0].text}</p>
                                 </div>
@@ -178,43 +199,13 @@ const ChatBot: React.FC = () => {
                         <div ref={chatEndRef} />
                     </div>
 
-                    <div className="p-4 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
-                        {locationError && <p className="text-xs text-center text-red-500 mb-2">{locationError}</p>}
-                        <div className="space-x-2 text-right mb-2" dir="rtl">
-                            {quickSuggestions[category].map((sugg) => (
-                                <button
-                                    key={sugg}
-                                    onClick={() => submitMessage(sugg)}
-                                    className="px-3 py-1 bg-emerald-50 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 rounded-full text-sm hover:bg-emerald-100 dark:hover:bg-emerald-800 transition"
-                                >
-                                    {sugg}
-                                </button>
-                            ))}
-                        </div>
-                        <form onSubmit={(e) => { e.preventDefault(); submitMessage(input); }} className="flex gap-2">
-                            <input
-                                type="text"
-                                value={input}
-                                onChange={(e) => setInput(e.target.value)}
-                                placeholder={`ابحث عن ${categoryTranslations[category]}...`}
-                                className="flex-grow p-3 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                                disabled={isLoading}
-                            />
-                            <button
-                                type="submit"
-                                disabled={isLoading || !input.trim()}
-                                className="px-6 py-3 bg-emerald-600 text-white font-bold rounded-lg hover:bg-emerald-700 disabled:bg-emerald-300 transition"
-                            >
-                                {isLoading ? <LoadingSpinner /> : 'أرسل'}
-                            </button>
-                        </form>
-                    </div>
+                    {renderInputArea()}
                 </div>
 
                 {latestResponse && (
                     <div className="flex flex-col flex-grow border-t-4 border-emerald-500 bg-gray-50 dark:bg-gray-900/50">
                         <div className="p-4 flex justify-between items-center flex-shrink-0 border-b border-gray-200 dark:border-gray-700">
-                            <h3 className="font-bold text-lg text-gray-800 dark:text-white">نتائج البحث</h3>
+                            <h3 className="font-bold text-lg text-gray-900 dark:text-gray-100">نتائج البحث</h3>
                             {sortedPlaces.length > 0 && (
                                 <div className="flex items-center gap-2">
                                     <button onClick={() => setPlacesToShowOnMap(sortedPlaces)} className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700" title="عرض على الخريطة">
@@ -237,7 +228,7 @@ const ChatBot: React.FC = () => {
                                     ))}
                                 </div>
                             ) : (
-                                 !isLoading && <div className="flex items-center justify-center h-full text-gray-500 dark:text-gray-400">
+                                 !isLoading && <div className="flex items-center justify-center h-full text-gray-600 dark:text-gray-400">
                                     <p>لم يتم العثور على أماكن تطابق بحثك.</p>
                                 </div>
                             )}

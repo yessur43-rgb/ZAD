@@ -11,23 +11,23 @@ interface IdentificationInfoCardProps {
 const IdentificationInfoCard: React.FC<IdentificationInfoCardProps> = ({ result }) => {
   return (
     <div className="p-6 bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 animate-fade-in">
-      <h3 className="text-3xl font-bold text-center text-gray-800 dark:text-white mb-6">
+      <h3 className="text-3xl font-bold text-center text-gray-900 dark:text-gray-100 mb-6">
         <span className="text-emerald-500">{result.name}</span>
       </h3>
       
       <div className="mb-6">
-        <h4 className="flex items-center gap-2 text-xl font-bold text-gray-800 dark:text-gray-200 mb-3">
+        <h4 className="flex items-center gap-2 text-xl font-bold text-gray-900 dark:text-gray-100 mb-3">
           <InfoIcon className="w-6 h-6 text-sky-500" />
           <span>معلومات</span>
         </h4>
-        <p className="text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg leading-relaxed whitespace-pre-wrap">
+        <p className="text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg leading-relaxed whitespace-pre-wrap">
           {result.description}
         </p>
       </div>
 
       {(result.address || result.googleMapsUrl) && (
         <div className="mb-6">
-          <h4 className="flex items-center gap-2 text-xl font-bold text-gray-800 dark:text-gray-200 mb-3">
+          <h4 className="flex items-center gap-2 text-xl font-bold text-gray-900 dark:text-gray-100 mb-3">
             <MapPinIcon className="w-6 h-6 text-fuchsia-500" />
             <span>الموقع</span>
           </h4>

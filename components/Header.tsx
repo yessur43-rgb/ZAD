@@ -36,8 +36,8 @@ const Header: React.FC<HeaderProps> = ({ onClearApiKey, onReplaceApiKey, hasApiK
       if (modalState === 'confirm') {
           return (
               <>
-                <h2 className="text-xl font-bold text-gray-800 dark:text-white">إدارة مفتاح API</h2>
-                <p className="mt-2 text-gray-600 dark:text-gray-400">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">إدارة مفتاح API</h2>
+                <p className="mt-2 text-gray-700 dark:text-gray-300">
                     ماذا تريد أن تفعل بمفتاحك المحفوظ؟
                 </p>
                 <div className="mt-6 flex flex-col gap-3">
@@ -66,8 +66,8 @@ const Header: React.FC<HeaderProps> = ({ onClearApiKey, onReplaceApiKey, hasApiK
       if (modalState === 'replace') {
           return (
                <>
-                <h2 className="text-xl font-bold text-gray-800 dark:text-white">استبدال مفتاح API</h2>
-                <p className="mt-2 text-gray-600 dark:text-gray-400">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">استبدال مفتاح API</h2>
+                <p className="mt-2 text-gray-700 dark:text-gray-300">
                     أدخل مفتاح Gemini API الجديد الخاص بك.
                 </p>
                 <form onSubmit={handleConfirmReplace} className="mt-6">
@@ -108,7 +108,7 @@ const Header: React.FC<HeaderProps> = ({ onClearApiKey, onReplaceApiKey, hasApiK
       <div className="container mx-auto px-4 py-4 flex justify-between items-center">
         <div className="flex items-center gap-3">
             <AppIcon className="w-8 h-8 text-emerald-600 dark:text-emerald-500" />
-            <span className="text-2xl font-bold text-gray-800 dark:text-gray-200">زاد</span>
+            <span className="text-2xl font-bold text-gray-900 dark:text-gray-100">زاد</span>
         </div>
         {hasApiKey && (
              <button 

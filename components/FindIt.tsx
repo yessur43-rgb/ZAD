@@ -1,6 +1,6 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { identifyObjectOrPlace, findProductInStores, findProductInStoresByText, findVignetteInfo } from '../services/geminiService';
-import { FindItResponse, FindItCategory, VignetteDetailsResponse, IdentificationResponse } from '../types';
+import { FindItResponse, FindItCategory, VignetteDetailsResponse, IdentificationResponse, UserLocation } from '../types';
 import { LoadingSpinner } from './icons/LoadingSpinner';
 import { CameraIcon } from './icons/CameraIcon';
 import PlaceCard from './RestaurantCard';
@@ -10,8 +10,11 @@ import VignetteInfoCard from './VignetteInfoCard';
 import IdentificationInfoCard from './LandmarkInfoCard';
 import { SightseeingIcon } from './icons/SightseeingIcon';
 
+interface FindItProps {
+  location: UserLocation | null;
+}
 
-const FindIt: React.FC = () => {
+const FindIt: React.FC<FindItProps> = ({ location }) => {
   const [category, setCategory] = useState<FindItCategory>('product');
   
   // Product state
@@ -30,43 +33,8 @@ const FindIt: React.FC = () => {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [location, setLocation] = useState<{ latitude: number, longitude: number } | null>(null);
-  const [locationError, setLocationError] = useState<string | null>(null);
-  const [isLocationLoading, setIsLocationLoading] = useState<boolean>(true);
-
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    // Only request location if it's needed for the current category
-    if (category === 'product') {
-        setIsLocationLoading(true);
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    setLocation({
-                        latitude: position.coords.latitude,
-                        longitude: position.coords.longitude,
-                    });
-                    setLocationError(null);
-                    setIsLocationLoading(false);
-                },
-                (err) => {
-                    console.error(err);
-                    setLocationError('يرجى تمكين الوصول إلى الموقع للعثور على المتاجر القريبة.');
-                    setIsLocationLoading(false);
-                }
-            );
-        } else {
-            setLocationError('خاصية تحديد الموقع الجغرافي غير مدعومة في هذا المتصفح.');
-            setIsLocationLoading(false);
-        }
-    } else {
-        // For other categories, we don't need location upfront.
-        setLocation(null);
-        setLocationError(null);
-        setIsLocationLoading(false);
-    }
-  }, [category]); // Re-run when category changes
 
   const resetState = () => {
     setImage(null);
@@ -104,7 +72,7 @@ const FindIt: React.FC = () => {
   const handleAnalyzeClick = async () => {
     if (!imageFile || !image) return;
     if (!location) {
-        setError(locationError || 'الموقع مطلوب للعثور على المتاجر القريبة.');
+        setError('الموقع مطلوب للعثور على المتاجر القريبة. يرجى تمكين الوصول إلى الموقع.');
         return;
     }
 
@@ -128,7 +96,7 @@ const FindIt: React.FC = () => {
   const handleTextSearchClick = async () => {
     if (!productName.trim()) return;
     if (!location) {
-      setError(locationError || 'الموقع مطلوب للعثور على المتاجر القريبة.');
+      setError('الموقع مطلوب للعثور على المتاجر القريبة. يرجى تمكين الوصول إلى الموقع.');
       return;
     }
 
@@ -189,10 +157,22 @@ const FindIt: React.FC = () => {
     }
   };
 
+  const renderLocationPermissionMessage = () => {
+      if (category !== 'product' || location) return null;
+      
+      return (
+          <div className="p-4 my-4 text-center border border-amber-500/50 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
+              <p className="font-semibold text-amber-700 dark:text-amber-300">
+                  للبحث عن المنتجات، يرجى تمكين الوصول إلى الموقع من الشاشة الرئيسية.
+              </p>
+          </div>
+      )
+  }
+
   const renderProductSearch = () => (
     <>
-      <p className="text-gray-500 dark:text-gray-400 mt-1 mb-6 text-center">صوّر أي منتج أو اكتب اسمه وسأبحث لك عن أماكن تبيعه بالقرب منك.</p>
-      {/* Text Search */}
+      <p className="text-gray-600 dark:text-gray-400 mt-1 mb-6 text-center">صوّر أي منتج أو اكتب اسمه وسأبحث لك عن أماكن تبيعه بالقرب منك.</p>
+      {renderLocationPermissionMessage()}
       <div className="flex flex-col sm:flex-row gap-2">
         <input
           type="text"
@@ -205,7 +185,7 @@ const FindIt: React.FC = () => {
         />
         <button
           onClick={handleTextSearchClick}
-          disabled={isLoading || !productName.trim() || isLocationLoading || !!locationError}
+          disabled={isLoading || !productName.trim() || !location}
           className="px-6 py-3 bg-emerald-600 text-white font-bold rounded-lg hover:bg-emerald-700 disabled:bg-emerald-300 disabled:cursor-not-allowed transition flex items-center justify-center"
         >
           {isLoading && productName ? <LoadingSpinner /> : <FindItIcon className="w-5 h-5" />}
@@ -215,7 +195,7 @@ const FindIt: React.FC = () => {
       
       <div className="flex items-center text-center my-6">
           <div className="flex-grow border-t border-gray-300 dark:border-gray-600"></div>
-          <span className="flex-shrink-0 mx-4 text-gray-500 dark:text-gray-400 font-semibold">أو</span>
+          <span className="flex-shrink-0 mx-4 text-gray-600 dark:text-gray-400 font-semibold">أو</span>
           <div className="flex-grow border-t border-gray-300 dark:border-gray-600"></div>
       </div>
 
@@ -246,7 +226,7 @@ const FindIt: React.FC = () => {
         ) : (
             <div className="flex flex-col items-center justify-center h-48">
               <CameraIcon className="w-16 h-16 text-gray-400 dark:text-gray-500" />
-              <p className="mt-2 text-sm text-gray-500">اسحب وأفلت صورة المنتج هنا، أو انقر للبحث</p>
+              <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">اسحب وأفلت صورة المنتج هنا، أو انقر للبحث</p>
             </div>
         )}
       </div>
@@ -264,7 +244,7 @@ const FindIt: React.FC = () => {
       {image && (
         <button
           onClick={handleAnalyzeClick}
-          disabled={isLoading || !image || isLocationLoading || !!locationError}
+          disabled={isLoading || !image || !location}
           className="mt-3 w-full flex items-center justify-center gap-2 px-4 py-3 bg-emerald-600 text-white font-bold rounded-lg hover:bg-emerald-700 disabled:bg-emerald-300 disabled:cursor-not-allowed transition"
         >
           {isLoading && image ? <LoadingSpinner /> : <CameraIcon className="w-5 h-5" />}
@@ -276,7 +256,7 @@ const FindIt: React.FC = () => {
 
   const renderVignetteSearch = () => (
     <>
-      <p className="text-gray-500 dark:text-gray-400 mt-1 mb-6 text-center">مسافر بالسيارة؟ أدخل اسم الدولة للحصول على معلومات مفصلة عن استيكر العبور.</p>
+      <p className="text-gray-600 dark:text-gray-400 mt-1 mb-6 text-center">مسافر بالسيارة؟ أدخل اسم الدولة للحصول على معلومات مفصلة عن استيكر العبور.</p>
       <div className="flex flex-col sm:flex-row gap-2">
           <input
             type="text"
@@ -301,7 +281,7 @@ const FindIt: React.FC = () => {
   
     const renderIdentificationSearch = () => (
     <>
-      <p className="text-gray-500 dark:text-gray-400 mt-1 mb-6 text-center">صوّر أي شيء وسأبحث لك عن معلومات مفصلة عنه وكيفية الوصول إليه إن كان مكاناً.</p>
+      <p className="text-gray-600 dark:text-gray-400 mt-1 mb-6 text-center">صوّر أي شيء وسأبحث لك عن معلومات مفصلة عنه وكيفية الوصول إليه إن كان مكاناً.</p>
       <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 flex flex-col items-center text-center">
         <input
           type="file"
@@ -328,7 +308,7 @@ const FindIt: React.FC = () => {
         ) : (
             <div className="flex flex-col items-center justify-center h-48">
               <CameraIcon className="w-16 h-16 text-gray-400 dark:text-gray-500" />
-              <p className="mt-2 text-sm text-gray-500">اسحب وأفلت صورة الشيء هنا، أو انقر للبحث</p>
+              <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">اسحب وأفلت صورة الشيء هنا، أو انقر للبحث</p>
             </div>
         )}
       </div>
@@ -361,7 +341,7 @@ const FindIt: React.FC = () => {
     <div className="flex flex-col items-center p-4">
       <div className="w-full max-w-2xl">
         <div className="text-center mb-6">
-            <h2 className="text-2xl font-bold text-gray-800 dark:text-white">أوجدها لي</h2>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">أوجدها لي</h2>
         </div>
 
         <div className="flex items-center justify-center gap-1 mb-6 border border-gray-300 dark:border-gray-600 rounded-lg p-1 bg-gray-100 dark:bg-gray-700">
@@ -381,7 +361,6 @@ const FindIt: React.FC = () => {
       </div>
 
       <div className="mt-8 w-full max-w-3xl">
-        {locationError && !error && category === 'product' && <p className="text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/50 p-3 rounded-lg text-center font-semibold">{locationError}</p>}
         {isLoading && (
             <div className="text-center text-gray-500">
                 <p>...جاري البحث، يرجى الانتظار</p>
@@ -392,8 +371,8 @@ const FindIt: React.FC = () => {
         {productResult && category === 'product' && (
             <div className="space-y-4">
                  <div className="p-4 bg-gray-100 dark:bg-gray-800 rounded-lg">
-                    <p className="text-sm text-gray-600 dark:text-gray-400">نتائج البحث لـ:</p>
-                    <h3 className="text-xl font-bold text-gray-900 dark:text-white">{productResult.identifiedProduct}</h3>
+                    <p className="text-sm text-gray-700 dark:text-gray-300">نتائج البحث لـ:</p>
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">{productResult.identifiedProduct}</h3>
                  </div>
                  <p className="text-gray-700 dark:text-gray-300">{productResult.aiResponseText}</p>
                  {productResult.places && productResult.places.length > 0 ? (
@@ -403,7 +382,7 @@ const FindIt: React.FC = () => {
                         ))}
                     </div>
                  ) : (
-                    !isLoading && <p className="text-center text-gray-500 dark:text-gray-400 p-4">لم يتم العثور على متاجر قريبة تبيع هذا المنتج.</p>
+                    !isLoading && <p className="text-center text-gray-600 dark:text-gray-400 p-4">لم يتم العثور على متاجر قريبة تبيع هذا المنتج.</p>
                  )}
             </div>
         )}

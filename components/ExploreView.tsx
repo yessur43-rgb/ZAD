@@ -21,8 +21,8 @@ const ExploreView: React.FC<ExploreViewProps> = ({ setView }) => {
     return (
         <div className="animate-fade-in">
             <div className="text-center mb-8">
-                <h1 className="text-3xl md:text-4xl font-bold text-gray-800 dark:text-white">أين ستكون وجهتك القادمة؟</h1>
-                <p className="mt-2 text-gray-600 dark:text-gray-400">استكشف وجهات ملهمة وابدأ التخطيط لرحلتك القادمة.</p>
+                <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100">أين ستكون وجهتك القادمة؟</h1>
+                <p className="mt-2 text-gray-700 dark:text-gray-300">استكشف وجهات ملهمة وابدأ التخطيط لرحلتك القادمة.</p>
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
@@ -48,8 +48,8 @@ const ExploreView: React.FC<ExploreViewProps> = ({ setView }) => {
                         <TravelIcon className="w-7 h-7 text-emerald-600 dark:text-emerald-400" />
                     </div>
                     <div>
-                        <h3 className="font-bold text-lg text-gray-800 dark:text-gray-200">خطط لرحلتك</h3>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">أنشئ خطة سفر مخصصة أو تصفح الخطط الجاهزة.</p>
+                        <h3 className="font-bold text-lg text-gray-900 dark:text-gray-100">خطط لرحلتك</h3>
+                        <p className="text-sm text-gray-700 dark:text-gray-300">أنشئ خطة سفر مخصصة أو تصفح الخطط الجاهزة.</p>
                     </div>
                 </div>
                  <div onClick={() => setView('community')} className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 flex items-center gap-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
@@ -57,8 +57,8 @@ const ExploreView: React.FC<ExploreViewProps> = ({ setView }) => {
                         <UsersIcon className="w-7 h-7 text-sky-600 dark:text-sky-400" />
                     </div>
                     <div>
-                        <h3 className="font-bold text-lg text-gray-800 dark:text-gray-200">نصائح المجتمع</h3>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">اكتشف أفضل النصائح من المسافرين الآخرين.</p>
+                        <h3 className="font-bold text-lg text-gray-900 dark:text-gray-100">نصائح المجتمع</h3>
+                        <p className="text-sm text-gray-700 dark:text-gray-300">اكتشف أفضل النصائح من المسافرين الآخرين.</p>
                     </div>
                 </div>
             </div>

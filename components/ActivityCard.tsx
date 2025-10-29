@@ -61,7 +61,7 @@ const ActivityCard: React.FC<ActivityCardProps> = ({ activity }) => {
           <span className="inline-block px-2 py-0.5 text-xs font-semibold rounded-full mb-2 bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
             {activity.category}
           </span>
-          <h3 className="font-bold text-lg text-gray-900 dark:text-white">{activity.name}</h3>
+          <h3 className="font-bold text-lg text-gray-900 dark:text-gray-100">{activity.name}</h3>
         </div>
         <div className="flex-shrink-0 text-left">
            {activity.status && (
@@ -75,18 +75,18 @@ const ActivityCard: React.FC<ActivityCardProps> = ({ activity }) => {
         </div>
       </div>
 
-      <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{activity.description}</p>
+      <p className="mt-2 text-sm text-gray-700 dark:text-gray-300">{activity.description}</p>
 
       <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700 space-y-2 text-sm">
-        <div className="flex items-start gap-2 text-gray-700 dark:text-gray-300">
+        <div className="flex items-start gap-2 text-gray-800 dark:text-gray-300">
           <PriceTagIcon className="w-5 h-5 text-gray-400 dark:text-gray-500 flex-shrink-0 mt-0.5" />
           <span>{activity.price}</span>
         </div>
-        <div className="flex items-start gap-2 text-gray-700 dark:text-gray-300">
+        <div className="flex items-start gap-2 text-gray-800 dark:text-gray-300">
           <ClockIcon className="w-5 h-5 text-gray-400 dark:text-gray-500 flex-shrink-0 mt-0.5" />
           <span>{formatOperatingHours(activity.operatingHours)}</span>
         </div>
-        <div className="flex items-start gap-2 text-gray-700 dark:text-gray-300">
+        <div className="flex items-start gap-2 text-gray-800 dark:text-gray-300">
           <MapPinIcon className="w-5 h-5 text-gray-400 dark:text-gray-500 flex-shrink-0 mt-0.5" />
           <span>{activity.address}</span>
         </div>

@@ -48,7 +48,7 @@ const TravelerGuide: React.FC = () => {
             >
                 <div className="flex items-center gap-3">
                     <Icon className="w-6 h-6 text-emerald-500" />
-                    <span className="font-bold text-lg text-gray-800 dark:text-gray-200">{title}</span>
+                    <span className="font-bold text-lg text-gray-900 dark:text-gray-100">{title}</span>
                 </div>
                 <ChevronDownIcon className={`w-5 h-5 transition-transform ${openSection === id ? 'rotate-180' : ''}`} />
             </button>
@@ -144,8 +144,8 @@ const TravelerGuide: React.FC = () => {
         <div className="flex flex-col items-center p-4">
             <div className="w-full max-w-3xl">
                 <div className="text-center mb-6">
-                    <h2 className="text-2xl font-bold text-gray-800 dark:text-white">دليل المسافر الشامل</h2>
-                    <p className="text-gray-500 dark:text-gray-400 mt-1">احصل على دليل سفر متكامل لأي وجهة في العالم.</p>
+                    <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">دليل المسافر الشامل</h2>
+                    <p className="text-gray-600 dark:text-gray-300 mt-1">احصل على دليل سفر متكامل لأي وجهة في العالم.</p>
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-2">

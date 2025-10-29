@@ -64,9 +64,9 @@ const PhraseTranslator: React.FC = () => {
     const renderPhraseRow = (phrase: Phrase) => (
         <div key={phrase.original} className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg flex items-center justify-between gap-4">
             <div className="flex-grow">
-                <p className="font-semibold text-gray-800 dark:text-gray-200">{phrase.translated}</p>
-                <p className="text-sm text-gray-500 dark:text-gray-400 italic">"{phrase.phonetic}"</p>
-                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{phrase.original}</p>
+                <p className="font-semibold text-gray-900 dark:text-gray-100">{phrase.translated}</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400 italic">"{phrase.phonetic}"</p>
+                <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">{phrase.original}</p>
             </div>
             <button
                 onClick={() => handleSpeak(phrase.translated, commonPhrases!.langCode)}
@@ -82,8 +82,8 @@ const PhraseTranslator: React.FC = () => {
         <div className="flex flex-col items-center p-4">
             <div className="w-full max-w-3xl">
                 <div className="text-center mb-6">
-                    <h2 className="text-2xl font-bold text-gray-800 dark:text-white">مترجم العبارات الذكي</h2>
-                    <p className="text-gray-500 dark:text-gray-400 mt-1">احصل على ترجمة ونطق للعبارات الأساسية في أي وجهة.</p>
+                    <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">مترجم العبارات الذكي</h2>
+                    <p className="text-gray-600 dark:text-gray-300 mt-1">احصل على ترجمة ونطق للعبارات الأساسية في أي وجهة.</p>
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-2">
@@ -113,7 +113,7 @@ const PhraseTranslator: React.FC = () => {
                     {commonPhrases && (
                         <div className="animate-fade-in space-y-8">
                              <div className="p-4 bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700">
-                                <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-4">ترجمة مخصصة ({commonPhrases.languageName})</h3>
+                                <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">ترجمة مخصصة ({commonPhrases.languageName})</h3>
                                 <div className="flex flex-col sm:flex-row gap-2">
                                      <input
                                         type="text"
@@ -136,7 +136,7 @@ const PhraseTranslator: React.FC = () => {
                             
                             {commonPhrases.categories.map(category => (
                                 <div key={category.categoryName}>
-                                    <h3 className="text-2xl font-bold text-gray-800 dark:text-white mb-4">{category.categoryName}</h3>
+                                    <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">{category.categoryName}</h3>
                                     <div className="space-y-3">
                                         {category.phrases.map(renderPhraseRow)}
                                     </div>

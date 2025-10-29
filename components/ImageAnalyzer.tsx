@@ -6,7 +6,6 @@ import { LoadingSpinner } from './icons/LoadingSpinner';
 import { CameraIcon } from './icons/CameraIcon';
 import { BarcodeIcon } from './icons/BarcodeIcon';
 import BarcodeScanner from './BarcodeScanner';
-// FIX: Import function to save analysis results to history.
 import { saveScanHistoryItem } from '../utils/storage';
 
 const ImageAnalyzer: React.FC = () => {
@@ -116,7 +115,7 @@ const ImageAnalyzer: React.FC = () => {
             ) : (
                 <div className="flex flex-col items-center justify-center h-48">
                     <CameraIcon className="w-16 h-16 text-gray-400 dark:text-gray-500" />
-                    <p className="mt-2 text-sm text-gray-500">اسحب وأفلت صورة المنتج هنا، أو انقر للبحث</p>
+                    <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">اسحب وأفلت صورة المنتج هنا، أو انقر للبحث</p>
                 </div>
             )}
             </div>
@@ -124,14 +123,14 @@ const ImageAnalyzer: React.FC = () => {
             <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 font-bold rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition"
+                    className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-800 dark:text-gray-100 font-bold rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition"
                 >
                     <CameraIcon className="w-5 h-5" />
                     <span>{image ? 'تغيير الصورة' : 'تحميل صورة'}</span>
                 </button>
                 <button
                     onClick={() => setScannerOpen(true)}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 font-bold rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition"
+                    className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-800 dark:text-gray-100 font-bold rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition"
                 >
                     <BarcodeIcon className="w-5 h-5" />
                     <span>مسح باركود</span>
@@ -153,7 +152,7 @@ const ImageAnalyzer: React.FC = () => {
 
       <div className="mt-8 w-full max-w-md">
         {isLoading && (
-            <div className="text-center text-gray-500">
+            <div className="text-center text-gray-600 dark:text-gray-400">
                 <p>...يتم تحليل الصورة، يرجى الانتظار</p>
             </div>
         )}
