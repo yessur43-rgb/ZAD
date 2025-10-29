@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Place, SearchCategory, DishSuggestionResponse, ParkingSuggestionResponse, ParkingInfo, HalalHaramListResponse } from '../types';
 import { getHalalDishes, findParkingForPlace, getHalalHaramList } from '../services/geminiService';
+import { addToFavorites, removeFromFavorites, isFavorite } from '../services/favoritesService';
 import { LoadingSpinner } from './icons/LoadingSpinner';
 import { MapPinIcon } from './icons/MapPinIcon';
 import { ClockIcon } from './icons/ClockIcon';
@@ -27,6 +28,55 @@ const PlaceCard: React.FC<PlaceCardProps> = ({ place, category }) => {
   const [isParkingLoading, setIsParkingLoading] = useState(false);
   const [isHalalHaramListLoading, setIsHalalHaramListLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isFav, setIsFav] = useState(false);
+  const [showShareMenu, setShowShareMenu] = useState(false);
+  const [showMoreInfo, setShowMoreInfo] = useState(false);
+
+  useEffect(() => {
+    setIsFav(isFavorite(place.name, place.address));
+  }, [place.name, place.address]);
+
+  const handleToggleFavorite = () => {
+    if (isFav) {
+      removeFromFavorites(place.name, place.address);
+      setIsFav(false);
+    } else {
+      addToFavorites(place, category);
+      setIsFav(true);
+    }
+  };
+
+  const handleShare = (type: 'copy' | 'whatsapp' | 'twitter') => {
+    const placeUrl = place.url || '';
+    const text = `${place.name}${place.address ? ' - ' + place.address : ''}${place.rating ? ` ⭐ ${place.rating}` : ''}`;
+
+    switch (type) {
+      case 'copy':
+        navigator.clipboard.writeText(`${text}\n${placeUrl}`);
+        alert('تم نسخ الرابط!');
+        break;
+      case 'whatsapp':
+        window.open(`https://wa.me/?text=${encodeURIComponent(text + '\n' + placeUrl)}`, '_blank');
+        break;
+      case 'twitter':
+        window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(placeUrl)}`, '_blank');
+        break;
+    }
+    setShowShareMenu(false);
+  };
+
+  const getGoogleMapsUrl = () => {
+    // Ensure Google Maps link is properly formatted
+    if (place.location) {
+      return `https://www.google.com/maps/search/?api=1&query=${place.location.latitude},${place.location.longitude}`;
+    }
+    if (place.url && place.url.includes('google.com/maps')) {
+      return place.url;
+    }
+    // Fallback: search by name and address
+    const query = encodeURIComponent(`${place.name} ${place.address || ''}`);
+    return `https://www.google.com/maps/search/?api=1&query=${query}`;
+  };
 
   const handleFetchDishes = async () => {
     if (dishes) { setDishes(null); return; }
@@ -97,14 +147,73 @@ const PlaceCard: React.FC<PlaceCardProps> = ({ place, category }) => {
 
   return (
     <div className="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-      {/* Header: Name + Map Icon */}
+      {/* Header: Name + Action Icons */}
       <div className="flex justify-between items-start mb-2">
         <h4 className="font-bold text-lg text-gray-900 dark:text-gray-100 flex-grow pr-2">{place.name}</h4>
-        {place.url && (
-            <a href={place.url} target="_blank" rel="noopener noreferrer" className="p-1 text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 flex-shrink-0 transition-colors" title="عرض على الخريطة">
-                <MapPinIcon className="w-5 h-5" />
-            </a>
-        )}
+        <div className="flex items-center gap-1 flex-shrink-0">
+          {/* Favorite Button */}
+          <button
+            onClick={handleToggleFavorite}
+            className={`p-1 transition-colors ${
+              isFav
+                ? 'text-red-500 hover:text-red-600'
+                : 'text-gray-400 hover:text-red-500'
+            }`}
+            title={isFav ? 'إزالة من المفضلة' : 'إضافة للمفضلة'}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill={isFav ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+            </svg>
+          </button>
+
+          {/* Share Button */}
+          <div className="relative">
+            <button
+              onClick={() => setShowShareMenu(!showShareMenu)}
+              className="p-1 text-gray-400 hover:text-blue-500 transition-colors"
+              title="مشاركة"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+              </svg>
+            </button>
+
+            {/* Share Menu */}
+            {showShareMenu && (
+              <div className="absolute left-0 top-full mt-1 bg-white dark:bg-gray-700 rounded-lg shadow-lg border border-gray-200 dark:border-gray-600 p-2 z-10 min-w-[150px]">
+                <button
+                  onClick={() => handleShare('copy')}
+                  className="w-full text-right px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-600 rounded transition-colors"
+                >
+                  📋 نسخ الرابط
+                </button>
+                <button
+                  onClick={() => handleShare('whatsapp')}
+                  className="w-full text-right px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-600 rounded transition-colors"
+                >
+                  📱 WhatsApp
+                </button>
+                <button
+                  onClick={() => handleShare('twitter')}
+                  className="w-full text-right px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-600 rounded transition-colors"
+                >
+                  🐦 Twitter
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Map Icon */}
+          <a
+            href={getGoogleMapsUrl()}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="p-1 text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors"
+            title="عرض على الخريطة"
+          >
+            <MapPinIcon className="w-5 h-5" />
+          </a>
+        </div>
       </div>
 
       {/* Distance - prominent display */}
@@ -203,7 +312,98 @@ const PlaceCard: React.FC<PlaceCardProps> = ({ place, category }) => {
             <span>مواقف</span>
           </button>
         )}
+
+        {/* More Info Button */}
+        <button
+          onClick={() => setShowMoreInfo(!showMoreInfo)}
+          className={`flex-1 min-w-[100px] text-sm flex items-center justify-center gap-2 px-4 py-2.5 font-semibold rounded-lg transition-all ${
+            showMoreInfo
+              ? 'bg-purple-600 text-white shadow-md'
+              : 'bg-purple-50 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-800 border border-purple-200 dark:border-purple-800'
+          }`}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span>معلومات أكثر</span>
+        </button>
       </div>
+
+      {/* More Info Section */}
+      {showMoreInfo && (
+        <div className="mt-4 p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800 animate-fade-in">
+          <h5 className="font-bold text-purple-900 dark:text-purple-100 mb-3">التفاصيل الكاملة</h5>
+
+          <div className="space-y-3 text-sm">
+            {place.rating && (
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-purple-700 dark:text-purple-300">التقييم:</span>
+                <span>⭐ {place.rating.toFixed(1)} {place.userRatingsTotal && `(${place.userRatingsTotal.toLocaleString('ar-SA')} تقييم)`}</span>
+              </div>
+            )}
+
+            {place.distance && (
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-purple-700 dark:text-purple-300">المسافة:</span>
+                <span>{place.distance} من موقعك</span>
+              </div>
+            )}
+
+            {place.address && (
+              <div className="flex items-start gap-2">
+                <span className="font-semibold text-purple-700 dark:text-purple-300">العنوان:</span>
+                <span className="flex-1">{place.address}</span>
+              </div>
+            )}
+
+            {place.closingTime && (
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-purple-700 dark:text-purple-300">الساعات:</span>
+                <span>{place.closingTime}</span>
+              </div>
+            )}
+
+            {place.priceLevel && (
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-purple-700 dark:text-purple-300">المستوى السعري:</span>
+                <span>{place.priceLevel}</span>
+              </div>
+            )}
+
+            {place.phoneNumber && (
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-purple-700 dark:text-purple-300">الهاتف:</span>
+                <a href={`tel:${place.phoneNumber}`} className="text-purple-600 dark:text-purple-400 hover:underline">
+                  {place.phoneNumber}
+                </a>
+              </div>
+            )}
+
+            {place.overview && (
+              <div className="flex items-start gap-2">
+                <span className="font-semibold text-purple-700 dark:text-purple-300">الوصف:</span>
+                <span className="flex-1 italic">"{place.overview}"</span>
+              </div>
+            )}
+
+            <div className="pt-3 border-t border-purple-200 dark:border-purple-700">
+              <a
+                href={getGoogleMapsUrl()}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+              >
+                <MapPinIcon className="w-4 h-4" />
+                <span>عرض على خرائط Google</span>
+              </a>
+            </div>
+
+            <p className="text-xs text-purple-600 dark:text-purple-400 mt-3">
+              💡 نصيحة: يمكنك أيضاً قراءة تقييمات الزوار على خرائط Google بالضغط على الزر أعلاه
+            </p>
+          </div>
+        </div>
+      )}
         
         <div className="mt-3 space-y-4">
             {error && <p className="text-xs text-red-500 text-center">{error}</p>}
