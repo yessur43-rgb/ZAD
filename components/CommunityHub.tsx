@@ -16,6 +16,7 @@ import { LocationMarkerIcon } from './icons/LocationMarkerIcon';
 import { PencilIcon } from './icons/PencilIcon';
 import { ImageIcon } from './icons/ImageIcon';
 import { CameraIcon } from './icons/CameraIcon';
+import StoryViewer from './StoryViewer';
 
 type TabView = 'stories' | 'hubs' | 'questions' | 'groups';
 
@@ -72,6 +73,9 @@ const CommunityHub: React.FC = () => {
     const [questionText, setQuestionText] = useState('');
     const [questionCategory, setQuestionCategory] = useState<QuickQuestion['category']>('general');
     const [questionCity, setQuestionCity] = useState('');
+
+    // Story viewer state
+    const [viewingStory, setViewingStory] = useState<{ stories: TravelStory[]; index: number } | null>(null);
 
     const currentUserId = userService.getUserId();
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -452,8 +456,12 @@ const CommunityHub: React.FC = () => {
                             </button>
                         </div>
                         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                            {stories.map(story => (
-                                <div key={story.id} className="relative bg-gray-200 dark:bg-gray-700 rounded-lg overflow-hidden aspect-[9/16] cursor-pointer group">
+                            {stories.map((story, index) => (
+                                <div
+                                    key={story.id}
+                                    onClick={() => setViewingStory({ stories, index })}
+                                    className="relative bg-gray-200 dark:bg-gray-700 rounded-lg overflow-hidden aspect-[9/16] cursor-pointer group hover:ring-2 hover:ring-emerald-500 transition-all"
+                                >
                                     {story.media[0] && (
                                         story.media[0].type === 'image' ? (
                                             <img src={story.media[0].data} alt="Story" className="w-full h-full object-cover" />
@@ -816,6 +824,20 @@ const CommunityHub: React.FC = () => {
                         </div>
                     </div>
                 </div>
+            )}
+
+            {/* Story Viewer */}
+            {viewingStory && (
+                <StoryViewer
+                    stories={viewingStory.stories}
+                    initialStoryIndex={viewingStory.index}
+                    onClose={() => {
+                        setViewingStory(null);
+                        refreshAll(); // Refresh to update view counts and reactions
+                    }}
+                    currentUserId={currentUserId}
+                    userProfiles={userProfiles}
+                />
             )}
         </div>
     );
