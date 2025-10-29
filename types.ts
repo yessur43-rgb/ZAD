@@ -296,3 +296,120 @@ export interface Community {
   creatorId: string;
   posts: CommunityPost[];
 }
+
+// --- Travel Stories (Snapchat-style) ---
+export type StoryCategory = 'food' | 'hotel' | 'activity' | 'tip' | 'warning' | 'transport' | 'general';
+
+export interface StoryMedia {
+  id: string;
+  type: 'image' | 'video';
+  data: string; // base64 or URL
+  duration?: number; // for videos, in seconds
+}
+
+export interface StoryReaction {
+  emoji: string;
+  userId: string;
+  timestamp: number;
+}
+
+export interface TravelStory {
+  id: string;
+  authorId: string;
+  location: {
+    name: string;
+    lat: number;
+    lon: number;
+    city: string;
+    country: string;
+  };
+  media: StoryMedia[];
+  caption?: string;
+  timestamp: number;
+  expiresAt: number; // 24 hours from creation
+  viewers: string[]; // user IDs who viewed
+  reactions: StoryReaction[];
+  tags: string[]; // #food #sunset #budget
+  category: StoryCategory;
+  isPublic: boolean;
+}
+
+export interface StoryHighlight {
+  id: string;
+  userId: string;
+  title: string;
+  coverImage: string;
+  stories: TravelStory[];
+  createdAt: number;
+  category: string;
+  isPublic: boolean;
+}
+
+// --- City Hubs (Telegram Channels-style) ---
+export type UpdatePriority = 'low' | 'medium' | 'high' | 'urgent';
+export type UpdateType = 'tip' | 'warning' | 'event' | 'deal' | 'announcement';
+
+export interface CityUpdate {
+  id: string;
+  type: UpdateType;
+  title: string;
+  content: string;
+  priority: UpdatePriority;
+  timestamp: number;
+  expiresAt: number;
+  authorId: string;
+  location?: string;
+  image?: string;
+  upvotes: string[]; // user IDs
+  downvotes: string[];
+}
+
+export interface CityHub {
+  id: string;
+  city: string;
+  country: string;
+  coverImage?: string;
+  description: string;
+
+  // Content
+  updates: CityUpdate[];
+  activeStories: string[]; // story IDs
+
+  // Community
+  members: string[]; // user IDs
+  moderators: string[];
+  createdAt: number;
+  lastActivityAt: number;
+}
+
+// --- Quick Questions ---
+export type QuestionCategory = 'food' | 'transport' | 'safety' | 'accommodation' | 'general';
+export type QuestionStatus = 'active' | 'resolved' | 'expired';
+
+export interface QuestionAnswer {
+  id: string;
+  userId: string;
+  text: string;
+  photos?: string[];
+  helpful: string[]; // user IDs who found it helpful
+  timestamp: number;
+}
+
+export interface QuickQuestion {
+  id: string;
+  askedBy: string;
+  question: string;
+  location: {
+    city: string;
+    lat: number;
+    lon: number;
+  };
+  category: QuestionCategory;
+  urgency: 'low' | 'high';
+  timestamp: number;
+  expiresAt: number; // 6 hours
+  answers: QuestionAnswer[];
+  bestAnswerId?: string; // chosen by asker
+  status: QuestionStatus;
+  tags: string[];
+}
