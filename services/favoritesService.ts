@@ -11,10 +11,15 @@ export interface FavoritePlace extends Place {
 export const getFavorites = (): FavoritePlace[] => {
     try {
         const stored = localStorage.getItem(FAVORITES_KEY);
-        if (!stored) return [];
-        return JSON.parse(stored);
+        if (!stored) {
+            console.log('💝 No favorites in localStorage');
+            return [];
+        }
+        const favorites = JSON.parse(stored);
+        console.log('💝 Retrieved favorites from localStorage:', favorites.length, 'items');
+        return favorites;
     } catch (error) {
-        console.error('Error getting favorites:', error);
+        console.error('❌ Error getting favorites:', error);
         return [];
     }
 };
@@ -23,11 +28,12 @@ export const getFavorites = (): FavoritePlace[] => {
 export const addToFavorites = (place: Place, category?: string): void => {
     try {
         const favorites = getFavorites();
+        console.log('💝 Current favorites before add:', favorites.length);
 
         // Check if already exists
         const exists = favorites.some(fav => fav.name === place.name && fav.address === place.address);
         if (exists) {
-            console.log('Place already in favorites');
+            console.log('⚠️ Place already in favorites:', place.name);
             return;
         }
 
@@ -39,9 +45,10 @@ export const addToFavorites = (place: Place, category?: string): void => {
 
         favorites.push(favoritePlace);
         localStorage.setItem(FAVORITES_KEY, JSON.stringify(favorites));
-        console.log('✅ Added to favorites:', place.name);
+        console.log('✅ Added to favorites:', place.name, '| Total:', favorites.length);
+        console.log('💾 Saved to localStorage:', localStorage.getItem(FAVORITES_KEY)?.length, 'characters');
     } catch (error) {
-        console.error('Error adding to favorites:', error);
+        console.error('❌ Error adding to favorites:', error);
     }
 };
 
@@ -49,20 +56,24 @@ export const addToFavorites = (place: Place, category?: string): void => {
 export const removeFromFavorites = (placeName: string, placeAddress?: string): void => {
     try {
         const favorites = getFavorites();
+        console.log('💝 Current favorites before remove:', favorites.length);
         const filtered = favorites.filter(fav =>
             !(fav.name === placeName && fav.address === placeAddress)
         );
         localStorage.setItem(FAVORITES_KEY, JSON.stringify(filtered));
-        console.log('❌ Removed from favorites:', placeName);
+        console.log('❌ Removed from favorites:', placeName, '| Remaining:', filtered.length);
+        console.log('💾 Saved to localStorage:', localStorage.getItem(FAVORITES_KEY)?.length, 'characters');
     } catch (error) {
-        console.error('Error removing from favorites:', error);
+        console.error('❌ Error removing from favorites:', error);
     }
 };
 
 // Check if a place is in favorites
 export const isFavorite = (placeName: string, placeAddress?: string): boolean => {
     const favorites = getFavorites();
-    return favorites.some(fav => fav.name === placeName && fav.address === placeAddress);
+    const result = favorites.some(fav => fav.name === placeName && fav.address === placeAddress);
+    console.log(`💝 Is "${placeName}" favorite?`, result, '| Total favorites:', favorites.length);
+    return result;
 };
 
 // Clear all favorites

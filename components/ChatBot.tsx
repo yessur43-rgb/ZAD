@@ -72,27 +72,42 @@ const ChatBot: React.FC<ChatBotProps> = ({ location }) => {
     }, [latestResponse, filterRating, filterPrice, filterDistance, filterOpenNow]);
 
     const applyFilters = (places: Place[]) => {
+        console.log('🔍 Applying filters:', {
+            totalPlaces: places.length,
+            filterRating,
+            filterPrice,
+            filterDistance,
+            filterOpenNow
+        });
+
         let filtered = [...places];
 
         // Filter by rating
         if (filterRating) {
             filtered = filtered.filter(p => (p.rating || 0) >= filterRating);
+            console.log(`✅ After rating filter (>=${filterRating}):`, filtered.length, 'places');
         }
 
         // Filter by price
         if (filterPrice) {
             filtered = filtered.filter(p => p.priceLevel === filterPrice);
+            console.log(`✅ After price filter (${filterPrice}):`, filtered.length, 'places');
         }
 
         // Filter by distance
         if (filterDistance && location) {
             filtered = filtered.filter(p => {
-                if (!p.distance) return false;
+                if (!p.distance) {
+                    console.log('⚠️ Place without distance:', p.name);
+                    return false;
+                }
                 const distanceNum = parseFloat(p.distance.match(/[\d.]+/)?.[0] || '9999');
                 const unit = p.distance.includes('كم') ? 1000 : 1;
                 const distanceInMeters = distanceNum * unit;
+                console.log(`📏 ${p.name}: ${p.distance} = ${distanceInMeters}m (range: ${filterDistance.min}-${filterDistance.max}m)`);
                 return distanceInMeters >= filterDistance.min && distanceInMeters <= filterDistance.max;
             });
+            console.log(`✅ After distance filter (${filterDistance.min}-${filterDistance.max}m):`, filtered.length, 'places');
         }
 
         // Filter by open now
@@ -101,8 +116,10 @@ const ChatBot: React.FC<ChatBotProps> = ({ location }) => {
                 if (!p.closingTime) return false;
                 return p.closingTime.includes('مفتوح') || p.closingTime.includes('Open');
             });
+            console.log(`✅ After open now filter:`, filtered.length, 'places');
         }
 
+        console.log('✅ Final filtered places:', filtered.length);
         setSortedPlaces(filtered);
     };
 

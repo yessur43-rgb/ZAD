@@ -32,11 +32,33 @@ const PlaceCard: React.FC<PlaceCardProps> = ({ place, category }) => {
   const [showShareMenu, setShowShareMenu] = useState(false);
   const [showMoreInfo, setShowMoreInfo] = useState(false);
 
+  // Check favorite status on mount and when place changes
   useEffect(() => {
-    setIsFav(isFavorite(place.name, place.address));
+    const checkFavoriteStatus = () => {
+      const status = isFavorite(place.name, place.address);
+      console.log(`💝 Checking favorite status for "${place.name}":`, status);
+      setIsFav(status);
+    };
+
+    checkFavoriteStatus();
+
+    // Listen for storage changes (in case favorites are updated from another tab)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'zad_favorites') {
+        console.log('💝 Storage changed, rechecking favorites');
+        checkFavoriteStatus();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, [place.name, place.address]);
 
   const handleToggleFavorite = () => {
+    console.log(`💝 Toggle favorite for "${place.name}", current status:`, isFav);
     if (isFav) {
       removeFromFavorites(place.name, place.address);
       setIsFav(false);
