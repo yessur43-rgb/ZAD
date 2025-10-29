@@ -66,6 +66,31 @@ export const validateApiKey = async (key: string): Promise<boolean> => {
 };
 
 
+// Helper to calculate distance between two coordinates using Haversine formula
+const calculateDistance = (
+    lat1: number,
+    lon1: number,
+    lat2: number,
+    lon2: number
+): { meters: number; text: string } => {
+    const R = 6371; // Radius of Earth in kilometers
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a =
+        Math.sin(dLat/2) * Math.sin(dLat/2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+        Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const distanceKm = R * c;
+    const meters = distanceKm * 1000;
+
+    const text = distanceKm < 1
+        ? `${Math.round(meters)} م`
+        : `${distanceKm.toFixed(1)} كم`;
+
+    return { meters, text };
+};
+
 // Helper to safely parse JSON responses from the model
 const parseJsonResponse = <T>(jsonString: string, schemaName: string): T => {
     try {
@@ -205,11 +230,11 @@ export const findPlaces = async (
 
     if (location) {
         const locationName = location.name;
-        finalQuery = `ابحث عن ${query} في "${locationName}".`;
-        systemInstruction = `أنت مساعد جغرافي خبير مهمتك هي إيجاد أفضل الأماكن للمستخدمين باستخدام خرائط جوجل في الموقع المحدد. قدم دائماً قائمة متنوعة من 3-5 خيارات إن أمكن. **التزم بشدة بالمدينة المحددة في الاستعلام (مثال: "${locationName}") ولا تخرج عنها.** إذا كان البحث يتضمن فئة ومصطلحًا (مثل "سوبر ماركت مخابز")، ففسر ذلك بمرونة. هدفك هو تزويد المستخدم بقائمة غنية بالخيارات القريبة وذات الصلة.`;
+        finalQuery = `ابحث عن ${query} في "${locationName}". مع نبذة تعريفية مختصرة عن كل مكان.`;
+        systemInstruction = `أنت مساعد جغرافي خبير مهمتك هي إيجاد أفضل الأماكن للمستخدمين باستخدام خرائط جوجل في الموقع المحدد. قدم دائماً قائمة متنوعة من 3-5 خيارات إن أمكن. **التزم بشدة بالمدينة المحددة في الاستعلام (مثال: "${locationName}") ولا تخرج عنها.** ابحث فقط عن الأماكن القريبة (ضمن 25 كيلومتر). إذا كان البحث يتضمن فئة ومصطلحًا (مثل "متاجر إلكترونيات")، ففسر ذلك بمرونة. هدفك هو تزويد المستخدم بقائمة غنية بالخيارات القريبة وذات الصلة مع نبذة تعريفية مختصرة لكل مكان.`;
     } else {
         finalQuery = query; // Use query as is, user might have specified a city
-        systemInstruction = `أنت مساعد جغرافي خبير مهمتك هي إيجاد أماكن للمستخدمين. **إذا لم يحدد المستخدم مدينة في طلبه (مثل 'في الرياض')، يجب عليك أن تطلب منه بأدب توضيح المدينة التي يبحث فيها قبل استخدام أي أداة بحث.** لا تفترض موقعًا أبدًا. بمجرد تحديد المدينة، استخدم خرائط جوجل للعثور على قائمة متنوعة من 3-5 خيارات.`;
+        systemInstruction = `أنت مساعد جغرافي خبير مهمتك هي إيجاد أماكن للمستخدمين. **إذا لم يحدد المستخدم مدينة في طلبه (مثل 'في الرياض')، يجب عليك أن تطلب منه بأدب توضيح المدينة التي يبحث فيها قبل استخدام أي أداة بحث.** لا تفترض موقعًا أبدًا. بمجرد تحديد المدينة، استخدم خرائط جوجل للعثور على قائمة متنوعة من 3-5 خيارات مع نبذة تعريفية مختصرة.`;
     }
 
     const response = await ai.models.generateContent({
@@ -234,11 +259,48 @@ export const findPlaces = async (
     if (groundingChunks) {
         for (const chunk of groundingChunks) {
             if (chunk.maps) {
-                places.push(mapGeminiPlaceToPlace(chunk.maps));
+                const place = mapGeminiPlaceToPlace(chunk.maps);
+
+                // Calculate distance if user location is available
+                if (location && place.location) {
+                    const distanceData = calculateDistance(
+                        location.latitude,
+                        location.longitude,
+                        place.location.latitude,
+                        place.location.longitude
+                    );
+                    place.distance = distanceData.text;
+
+                    // Filter places beyond 25km
+                    if (distanceData.meters > 25000) {
+                        continue; // Skip this place
+                    }
+                }
+
+                places.push(place);
             }
         }
     }
-    
+
+    // Extract overviews from AI response text
+    // The AI will naturally include descriptions in its response
+    const responseText = response.text;
+
+    // Try to extract place-specific descriptions from the response
+    // This is a simple approach - we'll rely on the AI to provide good descriptions
+    places.forEach((place, index) => {
+        // Look for the place name in the response and extract nearby text as overview
+        const nameRegex = new RegExp(`${place.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[^\\n]*(?:\\n[^\\n]{1,200})?`, 'i');
+        const match = responseText.match(nameRegex);
+        if (match && match[0]) {
+            // Extract a brief overview (max 200 chars)
+            const overview = match[0].replace(place.name, '').trim().slice(0, 200);
+            if (overview && overview.length > 10) {
+                place.overview = overview;
+            }
+        }
+    });
+
     return { text: response.text, places };
 };
 

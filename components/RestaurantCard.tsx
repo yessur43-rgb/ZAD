@@ -100,6 +100,9 @@ const PlaceCard: React.FC<PlaceCardProps> = ({ place, category }) => {
       <div className="flex justify-between items-start">
         <div className="flex-grow min-w-0">
           <h4 className="font-bold text-lg text-gray-900 dark:text-gray-100 truncate">{place.name}</h4>
+          {place.distance && (
+            <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 mt-0.5">{place.distance}</p>
+          )}
         </div>
         {place.url && (
             <a href={place.url} target="_blank" rel="noopener noreferrer" className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 ml-2 flex-shrink-0" title="عرض على الخريطة">
@@ -107,6 +110,10 @@ const PlaceCard: React.FC<PlaceCardProps> = ({ place, category }) => {
             </a>
         )}
       </div>
+
+      {place.overview && (
+        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400 leading-relaxed">{place.overview}</p>
+      )}
 
       <div className="mt-2 text-sm text-gray-700 dark:text-gray-300">
          {place.address && (
@@ -123,7 +130,6 @@ const PlaceCard: React.FC<PlaceCardProps> = ({ place, category }) => {
                     )}
                 </div>
             )}
-            {place.distance && <span className="font-semibold text-xs">{place.distance}</span>}
             {place.closingTime && <span className="flex items-center gap-1 text-xs"><ClockIcon className="w-3 h-3"/> {place.closingTime}</span>}
             {place.priceLevel && <span className="flex items-center gap-1 text-xs"><PriceIcon className="w-3 h-3"/> {place.priceLevel}</span>}
         </div>
@@ -131,19 +137,21 @@ const PlaceCard: React.FC<PlaceCardProps> = ({ place, category }) => {
       
       <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
         <div className="flex flex-wrap gap-2">
-            {category === 'restaurants' && (
+            {(category === 'restaurants' || category === 'cafes') && (
               <button onClick={handleFetchDishes} disabled={isDishesLoading} className={`flex-1 text-sm flex items-center justify-center gap-2 px-3 py-2 font-semibold rounded-md transition disabled:opacity-50 ${dishes ? 'bg-emerald-600 text-white' : 'bg-emerald-50 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-800'}`}>
-                {isDishesLoading ? <LoadingSpinner /> : <DishIcon className="w-4 h-4" />} <span>أطباق</span>
+                {isDishesLoading ? <LoadingSpinner /> : <DishIcon className="w-4 h-4" />} <span>{category === 'cafes' ? 'قائمة' : 'أطباق'}</span>
               </button>
             )}
-            {category === 'restaurants' && (
+            {(category === 'restaurants' || category === 'cafes') && (
               <button onClick={handleFetchHalalHaramList} disabled={isHalalHaramListLoading} className={`flex-1 text-sm flex items-center justify-center gap-2 px-3 py-2 font-semibold rounded-md transition disabled:opacity-50 ${halalHaramList ? 'bg-amber-500 text-white' : 'bg-amber-50 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-800'}`}>
                   {isHalalHaramListLoading ? <LoadingSpinner /> : <ChecklistIcon className="w-4 h-4" />} <span>تحليل</span>
               </button>
             )}
-             <button onClick={handleFetchParking} disabled={isParkingLoading} className={`flex-1 text-sm flex items-center justify-center gap-2 px-3 py-2 font-semibold rounded-md transition disabled:opacity-50 ${parking ? 'bg-sky-500 text-white' : 'bg-sky-50 dark:bg-sky-900/50 text-sky-700 dark:text-sky-300 hover:bg-sky-100 dark:hover:bg-sky-800'}`}>
+             {(category === 'restaurants' || category === 'cafes' || category === 'shopping' || category === 'attractions') && (
+              <button onClick={handleFetchParking} disabled={isParkingLoading} className={`flex-1 text-sm flex items-center justify-center gap-2 px-3 py-2 font-semibold rounded-md transition disabled:opacity-50 ${parking ? 'bg-sky-500 text-white' : 'bg-sky-50 dark:bg-sky-900/50 text-sky-700 dark:text-sky-300 hover:bg-sky-100 dark:hover:bg-sky-800'}`}>
                 {isParkingLoading ? <LoadingSpinner /> : <CarIcon className="w-4 h-4" />} <span>مواقف</span>
               </button>
+             )}
         </div>
         
         <div className="mt-3 space-y-4">

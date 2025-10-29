@@ -45,10 +45,11 @@ export interface Place {
     priceLevel?: string;
     detailedHours?: string[];
     closingTime?: string;
-    distance?: string; // Added from ChatBot usage
+    distance?: string;
+    overview?: string; // Brief description of the place
 }
 
-export type SearchCategory = 'restaurants' | 'supermarkets' | 'pharmacies' | 'mosques';
+export type SearchCategory = 'restaurants' | 'cafes' | 'shopping' | 'pharmacies' | 'attractions';
 
 // --- Restaurant & Menu Analysis ---
 export interface Dish {

@@ -5,25 +5,28 @@ import { LoadingSpinner } from './icons/LoadingSpinner';
 import PlaceCard from './RestaurantCard';
 import { RestaurantIcon } from './icons/RestaurantIcon';
 import { PharmacyIcon } from './icons/PharmacyIcon';
-import { SupermarketIcon } from './icons/SupermarketIcon';
+import { CafeIcon } from './icons/CafeIcon';
+import { ShoppingBagIcon } from './icons/ShoppingBagIcon';
+import { SightseeingIcon } from './icons/SightseeingIcon';
 import MapView from './MapView';
 import { MapIcon } from './icons/MapIcon';
 import { SortAscendingIcon } from './icons/SortAscendingIcon';
 import { StarIcon } from './icons/StarIcon';
-import { MosqueIcon } from './icons/MosqueIcon';
 
 const categoryTranslations: Record<SearchCategory, string> = {
     restaurants: 'مطاعم',
-    supermarkets: 'سوبر ماركت',
+    cafes: 'مقاهي',
+    shopping: 'تسوق',
     pharmacies: 'صيدليات',
-    mosques: 'مساجد'
+    attractions: 'معالم'
 };
 
 const quickSuggestions: { [key in SearchCategory]: string[] } = {
     restaurants: ['مشويات', 'شاورما', 'هندي', 'مأكولات بحرية'],
-    supermarkets: ['عروض', 'منتجات طازجة', 'مستلزمات منزلية', 'مخابز'],
+    cafes: ['قهوة مختصة', 'شاي', 'حلى', 'فطور'],
+    shopping: ['مولات', 'ملابس', 'إلكترونيات', 'هدايا'],
     pharmacies: ['صيدلية مناوبة', 'فيتامينات', 'مستلزمات أطفال', 'عناية بالبشرة'],
-    mosques: ['مسجد قريب', 'أوقات الصلاة', 'مسجد جامع', 'مصلى للنساء'],
+    attractions: ['متاحف', 'حدائق', 'معالم تاريخية', 'أماكن ترفيهية']
 };
 
 interface ChatBotProps {
@@ -171,9 +174,10 @@ const ChatBot: React.FC<ChatBotProps> = ({ location }) => {
                     <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
                         <div className="flex items-center justify-around bg-gray-100 dark:bg-gray-900 rounded-lg p-1">
                             <CategoryButton value="restaurants" label="مطاعم" Icon={RestaurantIcon} />
-                            <CategoryButton value="supermarkets" label="متاجر" Icon={SupermarketIcon} />
+                            <CategoryButton value="cafes" label="مقاهي" Icon={CafeIcon} />
+                            <CategoryButton value="shopping" label="تسوق" Icon={ShoppingBagIcon} />
                             <CategoryButton value="pharmacies" label="صيدليات" Icon={PharmacyIcon} />
-                            <CategoryButton value="mosques" label="مساجد" Icon={MosqueIcon} />
+                            <CategoryButton value="attractions" label="معالم" Icon={SightseeingIcon} />
                         </div>
                     </div>
 
