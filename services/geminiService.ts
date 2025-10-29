@@ -258,10 +258,17 @@ export const findPlaces = async (
     if (location) {
         const locationName = location.name;
         finalQuery = `ابحث عن ${query} في "${locationName}".`;
-        systemInstruction = `أنت مساعد جغرافي خبير مهمتك هي إيجاد أفضل الأماكن للمستخدمين باستخدام خرائط جوجل في الموقع المحدد. قدم دائماً قائمة متنوعة من 3-5 خيارات إن أمكن. **التزم بشدة بالمدينة المحددة في الاستعلام (مثال: "${locationName}") ولا تخرج عنها.** إذا كان البحث يتضمن فئة ومصطلحًا (مثل "متاجر إلكترونيات")، ففسر ذلك بمرونة. هدفك هو تزويد المستخدم بقائمة غنية بالخيارات القريبة وذات الصلة.`;
+        systemInstruction = `أنت مساعد جغرافي خبير مهمتك هي إيجاد أفضل الأماكن للمستخدمين باستخدام خرائط جوجل في الموقع المحدد. قدم دائماً قائمة متنوعة من 3-5 خيارات إن أمكن. **التزم بشدة بالمدينة المحددة في الاستعلام (مثال: "${locationName}") ولا تخرج عنها.**
+
+لكل مكان تذكره، قدم وصفاً مختصراً في جملة واحدة بين قوسين مزدوجين بعد اسم المكان مباشرة. مثال:
+* **اسم المكان**: "وصف مختصر عن المكان يشرح ما يميزه". حاصل على تقييم X من 5.
+
+هدفك هو تزويد المستخدم بقائمة غنية بالخيارات القريبة وذات الصلة مع أوصاف واضحة.`;
     } else {
         finalQuery = query; // Use query as is, user might have specified a city
-        systemInstruction = `أنت مساعد جغرافي خبير مهمتك هي إيجاد أماكن للمستخدمين. **إذا لم يحدد المستخدم مدينة في طلبه (مثل 'في الرياض')، يجب عليك أن تطلب منه بأدب توضيح المدينة التي يبحث فيها قبل استخدام أي أداة بحث.** لا تفترض موقعًا أبدًا. بمجرد تحديد المدينة، استخدم خرائط جوجل للعثور على قائمة متنوعة من 3-5 خيارات.`;
+        systemInstruction = `أنت مساعد جغرافي خبير مهمتك هي إيجاد أماكن للمستخدمين. **إذا لم يحدد المستخدم مدينة في طلبه (مثل 'في الرياض')، يجب عليك أن تطلب منه بأدب توضيح المدينة التي يبحث فيها قبل استخدام أي أداة بحث.** لا تفترض موقعًا أبدًا. بمجرد تحديد المدينة، استخدم خرائط جوجل للعثور على قائمة متنوعة من 3-5 خيارات.
+
+لكل مكان، قدم وصفاً مختصراً بين قوسين مزدوجين.`;
     }
 
     const response = await ai.models.generateContent({
@@ -304,8 +311,39 @@ export const findPlaces = async (
         }
     }
 
+    // Extract descriptions from AI response text
+    const responseText = response.text;
+    places.forEach((place) => {
+        // Try multiple patterns to extract description
+        // Pattern 1: "Place Name": "description"
+        const pattern1 = new RegExp(`\\*\\*${escapeRegex(place.name)}\\*\\*[^"]*"([^"]+)"`, 'i');
+        // Pattern 2: Place Name (description)
+        const pattern2 = new RegExp(`${escapeRegex(place.name)}[^(]*\\(([^)]+)\\)`, 'i');
+        // Pattern 3: Place Name: description.
+        const pattern3 = new RegExp(`${escapeRegex(place.name)}[:|：]\\s*([^.。\n]+)[.。]`, 'i');
+
+        let match = responseText.match(pattern1);
+        if (!match) match = responseText.match(pattern2);
+        if (!match) match = responseText.match(pattern3);
+
+        if (match && match[1]) {
+            let description = match[1].trim();
+            // Clean up the description
+            description = description.replace(/^["']|["']$/g, ''); // Remove quotes
+            description = description.replace(/^[:\s]+|[:\s]+$/g, ''); // Remove colons and spaces
+            if (description.length > 10 && description.length < 300) {
+                place.overview = description;
+            }
+        }
+    });
+
     return { text: response.text, places };
 };
+
+// Helper function to escape regex special characters
+function escapeRegex(str: string): string {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
 
 export const findPlacesOnRoute = async (
     start: string,

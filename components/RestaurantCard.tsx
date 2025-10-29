@@ -97,62 +97,113 @@ const PlaceCard: React.FC<PlaceCardProps> = ({ place, category }) => {
 
   return (
     <div className="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-      <div className="flex justify-between items-start">
-        <div className="flex-grow min-w-0">
-          <h4 className="font-bold text-lg text-gray-900 dark:text-gray-100 truncate">{place.name}</h4>
-          {place.distance && (
-            <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 mt-0.5">{place.distance}</p>
-          )}
-        </div>
+      {/* Header: Name + Map Icon */}
+      <div className="flex justify-between items-start mb-2">
+        <h4 className="font-bold text-lg text-gray-900 dark:text-gray-100 flex-grow pr-2">{place.name}</h4>
         {place.url && (
-            <a href={place.url} target="_blank" rel="noopener noreferrer" className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 ml-2 flex-shrink-0" title="عرض على الخريطة">
+            <a href={place.url} target="_blank" rel="noopener noreferrer" className="p-1 text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 flex-shrink-0 transition-colors" title="عرض على الخريطة">
                 <MapPinIcon className="w-5 h-5" />
             </a>
         )}
       </div>
 
-      {place.overview && (
-        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400 leading-relaxed">{place.overview}</p>
+      {/* Distance - prominent display */}
+      {place.distance && (
+        <div className="flex items-center gap-1.5 mb-3">
+          <WalkIcon className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+          <span className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">{place.distance} من موقعك</span>
+        </div>
       )}
 
-      <div className="mt-2 text-sm text-gray-700 dark:text-gray-300">
-         {place.address && (
-            <p className="text-xs text-gray-600 dark:text-gray-400 flex items-center gap-1.5 mb-2">
-              <MapPinIcon className="w-3 h-3 flex-shrink-0" /> {place.address}
-            </p>
-          )}
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-            {place.rating != null && place.rating > 0 && (
-                <div className="flex items-center gap-1.5">
-                    <StarRating rating={place.rating} />
-                    {place.userRatingsTotal && (
-                        <span className="text-xs text-gray-500 dark:text-gray-400">({place.userRatingsTotal.toLocaleString('ar-SA')})</span>
-                    )}
-                </div>
-            )}
-            {place.closingTime && <span className="flex items-center gap-1 text-xs"><ClockIcon className="w-3 h-3"/> {place.closingTime}</span>}
-            {place.priceLevel && <span className="flex items-center gap-1 text-xs"><PriceIcon className="w-3 h-3"/> {place.priceLevel}</span>}
+      {/* Description - clear and readable */}
+      {place.overview && (
+        <div className="mb-3 pb-3 border-b border-gray-100 dark:border-gray-700">
+          <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed italic">
+            "{place.overview}"
+          </p>
         </div>
+      )}
+
+      {/* Info row: Rating, Address, Hours, Price */}
+      <div className="space-y-2 mb-3 pb-3 border-b border-gray-100 dark:border-gray-700">
+        {place.rating != null && place.rating > 0 && (
+          <div className="flex items-center gap-2">
+            <StarRating rating={place.rating} />
+            <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">{place.rating.toFixed(1)}</span>
+            {place.userRatingsTotal && (
+              <span className="text-xs text-gray-500 dark:text-gray-400">({place.userRatingsTotal.toLocaleString('ar-SA')} تقييم)</span>
+            )}
+          </div>
+        )}
+
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-600 dark:text-gray-400">
+          {place.closingTime && (
+            <span className="flex items-center gap-1">
+              <ClockIcon className="w-3 h-3"/> {place.closingTime}
+            </span>
+          )}
+          {place.priceLevel && (
+            <span className="flex items-center gap-1">
+              <PriceIcon className="w-3 h-3"/> {place.priceLevel}
+            </span>
+          )}
+        </div>
+
+        {place.address && (
+          <p className="text-xs text-gray-600 dark:text-gray-400 flex items-start gap-1.5">
+            <MapPinIcon className="w-3 h-3 flex-shrink-0 mt-0.5" />
+            <span>{place.address}</span>
+          </p>
+        )}
       </div>
       
-      <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
-        <div className="flex flex-wrap gap-2">
-            {(category === 'restaurants' || category === 'cafes') && (
-              <button onClick={handleFetchDishes} disabled={isDishesLoading} className={`flex-1 text-sm flex items-center justify-center gap-2 px-3 py-2 font-semibold rounded-md transition disabled:opacity-50 ${dishes ? 'bg-emerald-600 text-white' : 'bg-emerald-50 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-800'}`}>
-                {isDishesLoading ? <LoadingSpinner /> : <DishIcon className="w-4 h-4" />} <span>{category === 'cafes' ? 'قائمة' : 'أطباق'}</span>
-              </button>
-            )}
-            {(category === 'restaurants' || category === 'cafes') && (
-              <button onClick={handleFetchHalalHaramList} disabled={isHalalHaramListLoading} className={`flex-1 text-sm flex items-center justify-center gap-2 px-3 py-2 font-semibold rounded-md transition disabled:opacity-50 ${halalHaramList ? 'bg-amber-500 text-white' : 'bg-amber-50 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-800'}`}>
-                  {isHalalHaramListLoading ? <LoadingSpinner /> : <ChecklistIcon className="w-4 h-4" />} <span>تحليل</span>
-              </button>
-            )}
-             {(category === 'restaurants' || category === 'cafes' || category === 'shopping' || category === 'attractions') && (
-              <button onClick={handleFetchParking} disabled={isParkingLoading} className={`flex-1 text-sm flex items-center justify-center gap-2 px-3 py-2 font-semibold rounded-md transition disabled:opacity-50 ${parking ? 'bg-sky-500 text-white' : 'bg-sky-50 dark:bg-sky-900/50 text-sky-700 dark:text-sky-300 hover:bg-sky-100 dark:hover:bg-sky-800'}`}>
-                {isParkingLoading ? <LoadingSpinner /> : <CarIcon className="w-4 h-4" />} <span>مواقف</span>
-              </button>
-             )}
-        </div>
+      {/* Action buttons */}
+      <div className="flex flex-wrap gap-2">
+        {(category === 'restaurants' || category === 'cafes') && (
+          <button
+            onClick={handleFetchDishes}
+            disabled={isDishesLoading}
+            className={`flex-1 min-w-[100px] text-sm flex items-center justify-center gap-2 px-4 py-2.5 font-semibold rounded-lg transition-all disabled:opacity-50 ${
+              dishes
+                ? 'bg-emerald-600 text-white shadow-md'
+                : 'bg-emerald-50 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-800 border border-emerald-200 dark:border-emerald-800'
+            }`}
+          >
+            {isDishesLoading ? <LoadingSpinner /> : <DishIcon className="w-4 h-4" />}
+            <span>{category === 'cafes' ? 'قائمة' : 'أطباق'}</span>
+          </button>
+        )}
+
+        {(category === 'restaurants' || category === 'cafes') && (
+          <button
+            onClick={handleFetchHalalHaramList}
+            disabled={isHalalHaramListLoading}
+            className={`flex-1 min-w-[100px] text-sm flex items-center justify-center gap-2 px-4 py-2.5 font-semibold rounded-lg transition-all disabled:opacity-50 ${
+              halalHaramList
+                ? 'bg-amber-500 text-white shadow-md'
+                : 'bg-amber-50 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-800 border border-amber-200 dark:border-amber-800'
+            }`}
+          >
+            {isHalalHaramListLoading ? <LoadingSpinner /> : <ChecklistIcon className="w-4 h-4" />}
+            <span>تحليل</span>
+          </button>
+        )}
+
+        {(category === 'restaurants' || category === 'cafes' || category === 'shopping' || category === 'attractions') && (
+          <button
+            onClick={handleFetchParking}
+            disabled={isParkingLoading}
+            className={`flex-1 min-w-[100px] text-sm flex items-center justify-center gap-2 px-4 py-2.5 font-semibold rounded-lg transition-all disabled:opacity-50 ${
+              parking
+                ? 'bg-sky-500 text-white shadow-md'
+                : 'bg-sky-50 dark:bg-sky-900/50 text-sky-700 dark:text-sky-300 hover:bg-sky-100 dark:hover:bg-sky-800 border border-sky-200 dark:border-sky-800'
+            }`}
+          >
+            {isParkingLoading ? <LoadingSpinner /> : <CarIcon className="w-4 h-4" />}
+            <span>مواقف</span>
+          </button>
+        )}
+      </div>
         
         <div className="mt-3 space-y-4">
             {error && <p className="text-xs text-red-500 text-center">{error}</p>}
@@ -212,15 +263,15 @@ const PlaceCard: React.FC<PlaceCardProps> = ({ place, category }) => {
                     )}
                 </div>
             )}
-        </div>
       </div>
+
       <style>{`
         @keyframes fade-in {
-            from { opacity: 0; transform: translateY(5px); }
-            to { opacity: 1; transform: translateY(0); }
+          from { opacity: 0; transform: translateY(5px); }
+          to { opacity: 1; transform: translateY(0); }
         }
         .animate-fade-in {
-            animation: fade-in 0.3s ease-out forwards;
+          animation: fade-in 0.3s ease-out forwards;
         }
       `}</style>
     </div>
