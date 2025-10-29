@@ -123,25 +123,46 @@ const PlaceCard: React.FC<PlaceCardProps> = ({ place, category }) => {
     }
   };
   
-  const renderParkingInfo = (p: ParkingInfo) => (
+  const renderParkingInfo = (p: ParkingInfo) => {
+    // Helper to get Google Maps URL for parking
+    const getParkingMapUrl = () => {
+      if (p.url) return p.url;
+      if (p.address) {
+        const query = encodeURIComponent(`${p.name} ${p.address}`);
+        return `https://www.google.com/maps/search/?api=1&query=${query}`;
+      }
+      const query = encodeURIComponent(p.name);
+      return `https://www.google.com/maps/search/?api=1&query=${query}`;
+    };
+
+    return (
       <div key={p.name} className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
-          <div className="flex justify-between items-start">
+          <div className="flex justify-between items-start mb-2">
               <h5 className="font-bold text-gray-800 dark:text-gray-200">{p.name}</h5>
-              {p.url && (
-                <a href={p.url} target="_blank" rel="noopener noreferrer" className="text-emerald-500 hover:underline text-xs font-semibold">
-                  <MapPinIcon className="w-4 h-4" />
-                </a>
-              )}
           </div>
-           {p.address && <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">{p.address}</p>}
+          {p.address && <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">{p.address}</p>}
           <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
               <span className="flex items-center gap-1"><WalkIcon className="w-3 h-3"/> {p.distance_to_restaurant}</span>
               <span className="flex items-center gap-1"><PriceIcon className="w-3 h-3"/> {p.pricing_details}</span>
               <span className="flex items-center gap-1"><CarIcon className="w-3 h-3"/> {p.parking_type}</span>
           </div>
-          {p.notes && <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">ملاحظة: {p.notes}</p>}
+          {p.notes && <p className="mt-2 text-xs text-amber-600 dark:text-amber-400">ملاحظة: {p.notes}</p>}
+
+          {/* Map Button */}
+          <div className="mt-3">
+              <a
+                  href={getParkingMapUrl()}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-600 text-white text-xs font-semibold rounded-lg hover:bg-emerald-700 transition-colors"
+              >
+                  <MapPinIcon className="w-3.5 h-3.5" />
+                  <span>عرض على الخريطة</span>
+              </a>
+          </div>
       </div>
-  );
+    );
+  };
 
   const hasDetails = place.detailedHours?.length || place.phoneNumber;
 
