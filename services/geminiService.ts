@@ -104,10 +104,32 @@ const parseJsonResponse = <T>(jsonString: string, schemaName: string): T => {
     }
 };
 
+// Helper to create a brief overview from place data
+const createPlaceOverview = (place: Place, category?: string): string => {
+    const parts: string[] = [];
+
+    if (place.rating && place.rating > 0) {
+        parts.push(`تقييم ${place.rating.toFixed(1)}`);
+        if (place.userRatingsTotal && place.userRatingsTotal > 50) {
+            parts.push(`(${place.userRatingsTotal} تقييم)`);
+        }
+    }
+
+    if (place.priceLevel) {
+        parts.push(place.priceLevel);
+    }
+
+    if (place.closingTime) {
+        parts.push(place.closingTime);
+    }
+
+    return parts.length > 0 ? parts.join(' • ') : '';
+};
+
 // Helper to convert grounding chunk data into our Place type
 const mapGeminiPlaceToPlace = (geminiPlace: GeminiPlace): Place => {
     const placeAnswer = geminiPlace.placeAnswerSources?.[0];
-    return {
+    const place: Place = {
         name: geminiPlace.title,
         url: geminiPlace.uri,
         address: placeAnswer?.address,
@@ -119,6 +141,11 @@ const mapGeminiPlaceToPlace = (geminiPlace: GeminiPlace): Place => {
         detailedHours: placeAnswer?.hours?.flatMap(h => h.weekdayDescriptions || []),
         closingTime: placeAnswer?.hours?.find(h => h.status)?.status
     };
+
+    // Create a simple overview from available data
+    place.overview = createPlaceOverview(place);
+
+    return place;
 };
 
 const productSystemInstruction = 'أنت خبير في الشريعة الإسلامية ومختص في تحليل المنتجات الغذائية لتحديد مدى توافقها مع أحكام الحلال. قم بتحليل المكونات بدقة وقدم إجابة واضحة وموجزة مع الأدلة. كن محايداً ومبنياً على الحقائق.';
@@ -230,11 +257,11 @@ export const findPlaces = async (
 
     if (location) {
         const locationName = location.name;
-        finalQuery = `ابحث عن ${query} في "${locationName}". مع نبذة تعريفية مختصرة عن كل مكان.`;
-        systemInstruction = `أنت مساعد جغرافي خبير مهمتك هي إيجاد أفضل الأماكن للمستخدمين باستخدام خرائط جوجل في الموقع المحدد. قدم دائماً قائمة متنوعة من 3-5 خيارات إن أمكن. **التزم بشدة بالمدينة المحددة في الاستعلام (مثال: "${locationName}") ولا تخرج عنها.** ابحث فقط عن الأماكن القريبة (ضمن 25 كيلومتر). إذا كان البحث يتضمن فئة ومصطلحًا (مثل "متاجر إلكترونيات")، ففسر ذلك بمرونة. هدفك هو تزويد المستخدم بقائمة غنية بالخيارات القريبة وذات الصلة مع نبذة تعريفية مختصرة لكل مكان.`;
+        finalQuery = `ابحث عن ${query} في "${locationName}".`;
+        systemInstruction = `أنت مساعد جغرافي خبير مهمتك هي إيجاد أفضل الأماكن للمستخدمين باستخدام خرائط جوجل في الموقع المحدد. قدم دائماً قائمة متنوعة من 3-5 خيارات إن أمكن. **التزم بشدة بالمدينة المحددة في الاستعلام (مثال: "${locationName}") ولا تخرج عنها.** إذا كان البحث يتضمن فئة ومصطلحًا (مثل "متاجر إلكترونيات")، ففسر ذلك بمرونة. هدفك هو تزويد المستخدم بقائمة غنية بالخيارات القريبة وذات الصلة.`;
     } else {
         finalQuery = query; // Use query as is, user might have specified a city
-        systemInstruction = `أنت مساعد جغرافي خبير مهمتك هي إيجاد أماكن للمستخدمين. **إذا لم يحدد المستخدم مدينة في طلبه (مثل 'في الرياض')، يجب عليك أن تطلب منه بأدب توضيح المدينة التي يبحث فيها قبل استخدام أي أداة بحث.** لا تفترض موقعًا أبدًا. بمجرد تحديد المدينة، استخدم خرائط جوجل للعثور على قائمة متنوعة من 3-5 خيارات مع نبذة تعريفية مختصرة.`;
+        systemInstruction = `أنت مساعد جغرافي خبير مهمتك هي إيجاد أماكن للمستخدمين. **إذا لم يحدد المستخدم مدينة في طلبه (مثل 'في الرياض')، يجب عليك أن تطلب منه بأدب توضيح المدينة التي يبحث فيها قبل استخدام أي أداة بحث.** لا تفترض موقعًا أبدًا. بمجرد تحديد المدينة، استخدم خرائط جوجل للعثور على قائمة متنوعة من 3-5 خيارات.`;
     }
 
     const response = await ai.models.generateContent({
@@ -270,36 +297,12 @@ export const findPlaces = async (
                         place.location.longitude
                     );
                     place.distance = distanceData.text;
-
-                    // Filter places beyond 25km
-                    if (distanceData.meters > 25000) {
-                        continue; // Skip this place
-                    }
                 }
 
                 places.push(place);
             }
         }
     }
-
-    // Extract overviews from AI response text
-    // The AI will naturally include descriptions in its response
-    const responseText = response.text;
-
-    // Try to extract place-specific descriptions from the response
-    // This is a simple approach - we'll rely on the AI to provide good descriptions
-    places.forEach((place, index) => {
-        // Look for the place name in the response and extract nearby text as overview
-        const nameRegex = new RegExp(`${place.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[^\\n]*(?:\\n[^\\n]{1,200})?`, 'i');
-        const match = responseText.match(nameRegex);
-        if (match && match[0]) {
-            // Extract a brief overview (max 200 chars)
-            const overview = match[0].replace(place.name, '').trim().slice(0, 200);
-            if (overview && overview.length > 10) {
-                place.overview = overview;
-            }
-        }
-    });
 
     return { text: response.text, places };
 };
