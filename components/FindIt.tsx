@@ -56,16 +56,74 @@ const FindIt: React.FC<FindItProps> = ({ location }) => {
     }
   };
 
-  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const compressImage = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+
+          // Resize if too large (max 1600px on longest side for better quality analysis)
+          const maxSize = 1600;
+          if (width > height && width > maxSize) {
+            height = (height * maxSize) / width;
+            width = maxSize;
+          } else if (height > maxSize) {
+            width = (width * maxSize) / height;
+            height = maxSize;
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            reject(new Error('Failed to get canvas context'));
+            return;
+          }
+
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // Compress to JPEG with 0.85 quality (better quality for product recognition)
+          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+          resolve(compressedDataUrl);
+        };
+        img.onerror = () => reject(new Error('Failed to load image'));
+        img.src = e.target?.result as string;
+      };
+      reader.onerror = () => reject(new Error('Failed to read file'));
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleImageChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       resetState();
       setImageFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImage(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+
+      try {
+        if (file.type.startsWith('image/')) {
+          // Compress image before storing
+          const compressed = await compressImage(file);
+          setImage(compressed);
+          console.log('✅ Image compressed. Original:', file.size, 'bytes, Compressed:', compressed.length, 'chars');
+        } else {
+          // Non-image files (shouldn't happen with accept="image/*" but just in case)
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            setImage(reader.result as string);
+          };
+          reader.readAsDataURL(file);
+        }
+      } catch (error) {
+        console.error('❌ Error compressing image:', error);
+        alert('حدث خطأ في معالجة الصورة. حاول مرة أخرى.');
+        resetState();
+      }
     }
   };
 
@@ -76,20 +134,26 @@ const FindIt: React.FC<FindItProps> = ({ location }) => {
         return;
     }
 
+    console.log('🔍 Starting product analysis...');
     setIsLoading(true);
     setError(null);
     setProductResult(null);
 
     try {
       const base64Data = image.split(',')[1];
-      const analysisResult = await findProductInStores(base64Data, imageFile.type, location);
+      console.log('📤 Sending image to API. Size:', base64Data.length, 'characters');
+
+      const analysisResult = await findProductInStores(base64Data, 'image/jpeg', location);
+
+      console.log('✅ Product analysis complete:', analysisResult);
       setProductResult(analysisResult);
     } catch (err) {
+      console.error('❌ Product analysis error:', err);
       const errorMessage = err instanceof Error ? err.message : 'حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.';
       setError(errorMessage);
-      console.error(err);
     } finally {
       setIsLoading(false);
+      console.log('✅ Analysis complete, loading stopped');
     }
   };
   
@@ -140,20 +204,26 @@ const FindIt: React.FC<FindItProps> = ({ location }) => {
   const handleIdentificationAnalyzeClick = async () => {
     if (!imageFile || !image) return;
 
+    console.log('🔍 Starting object identification...');
     setIsLoading(true);
     setError(null);
     setIdentificationResult(null);
 
     try {
       const base64Data = image.split(',')[1];
-      const analysisResult = await identifyObjectOrPlace(base64Data, imageFile.type);
+      console.log('📤 Sending image to API. Size:', base64Data.length, 'characters');
+
+      const analysisResult = await identifyObjectOrPlace(base64Data, 'image/jpeg');
+
+      console.log('✅ Identification complete:', analysisResult);
       setIdentificationResult(analysisResult);
     } catch (err) {
+      console.error('❌ Identification error:', err);
       const errorMessage = err instanceof Error ? err.message : 'حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.';
       setError(errorMessage);
-      console.error(err);
     } finally {
       setIsLoading(false);
+      console.log('✅ Identification complete, loading stopped');
     }
   };
 
