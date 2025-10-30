@@ -16,6 +16,7 @@ import { UserLocation } from './types';
 import { reverseGeocode } from './services/geminiService';
 import LocationDisplay from './components/LocationDisplay';
 import { UsersIcon } from './components/icons/UsersIcon';
+import { HeartIcon } from './components/icons/HeartIcon';
 
 const ImageAnalyzer = lazy(() => import('./components/ImageAnalyzer'));
 const ChatBot = lazy(() => import('./components/ChatBot'));
@@ -25,9 +26,10 @@ const MenuAnalyzer = lazy(() => import('./components/MenuAnalyzer'));
 const ActivitiesFinder = lazy(() => import('./components/ActivitiesFinder'));
 const IngredientGuide = lazy(() => import('./components/IngredientGuide'));
 const CommunityHub = lazy(() => import('./components/CommunityHub'));
+const Favorites = lazy(() => import('./components/Favorites'));
 
 
-type ToolView = 'image' | 'chat' | 'findit' | 'menu' | 'ingredient' | 'activities' | 'onmyway' | 'community';
+type ToolView = 'image' | 'chat' | 'findit' | 'menu' | 'ingredient' | 'activities' | 'onmyway' | 'community' | 'favorites';
 
 const App: React.FC = () => {
   const [selectedTool, setSelectedTool] = useState<ToolView | null>(null);
@@ -129,6 +131,7 @@ const App: React.FC = () => {
           activities: <ActivitiesFinder location={userLocation} />,
           ingredient: <IngredientGuide />,
           community: <CommunityHub />,
+          favorites: <Favorites />,
       };
       const toolLabelMap: Record<ToolView, string> = {
           image: 'تحليل المنتج',
@@ -139,6 +142,7 @@ const App: React.FC = () => {
           activities: 'الأنشطة',
           ingredient: 'دليل المكونات',
           community: 'مركز المجتمع',
+          favorites: 'المفضلة',
       };
       
       return (
@@ -178,6 +182,7 @@ const App: React.FC = () => {
 
     const toolButtons: { id: ToolView, label: string, Icon: React.FC<any> }[] = [
       { id: 'chat', label: 'ابحث عن أماكن', Icon: ChatIcon },
+      { id: 'favorites', label: 'المفضلة', Icon: HeartIcon },
       { id: 'onmyway', label: 'على طريقي', Icon: OnMyWayIcon },
       { id: 'activities', label: 'الأنشطة', Icon: ActivityIcon },
       { id: 'community', label: 'مركز المجتمع', Icon: UsersIcon },

@@ -43,12 +43,6 @@ const ChatBot: React.FC<ChatBotProps> = ({ location }) => {
     const [latestResponse, setLatestResponse] = useState<{ places: Place[], category: SearchCategory } | null>(null);
     const [sortedPlaces, setSortedPlaces] = useState<Place[]>([]);
 
-    // Filter states
-    const [filterRating, setFilterRating] = useState<number | null>(null);
-    const [filterPrice, setFilterPrice] = useState<string | null>(null);
-    const [filterDistance, setFilterDistance] = useState<{ min: number; max: number } | null>(null);
-    const [filterOpenNow, setFilterOpenNow] = useState<boolean>(false);
-
     const chatEndRef = useRef<HTMLDivElement>(null);
     const chatContainerRef = useRef<HTMLDivElement>(null);
     
@@ -65,63 +59,11 @@ const ChatBot: React.FC<ChatBotProps> = ({ location }) => {
 
     useEffect(() => {
         if (latestResponse) {
-            applyFilters(latestResponse.places);
+            setSortedPlaces(latestResponse.places);
         } else {
             setSortedPlaces([]);
         }
-    }, [latestResponse, filterRating, filterPrice, filterDistance, filterOpenNow]);
-
-    const applyFilters = (places: Place[]) => {
-        console.log('🔍 Applying filters:', {
-            totalPlaces: places.length,
-            filterRating,
-            filterPrice,
-            filterDistance,
-            filterOpenNow
-        });
-
-        let filtered = [...places];
-
-        // Filter by rating
-        if (filterRating) {
-            filtered = filtered.filter(p => (p.rating || 0) >= filterRating);
-            console.log(`✅ After rating filter (>=${filterRating}):`, filtered.length, 'places');
-        }
-
-        // Filter by price
-        if (filterPrice) {
-            filtered = filtered.filter(p => p.priceLevel === filterPrice);
-            console.log(`✅ After price filter (${filterPrice}):`, filtered.length, 'places');
-        }
-
-        // Filter by distance
-        if (filterDistance && location) {
-            filtered = filtered.filter(p => {
-                if (!p.distance) {
-                    console.log('⚠️ Place without distance:', p.name);
-                    return false;
-                }
-                const distanceNum = parseFloat(p.distance.match(/[\d.]+/)?.[0] || '9999');
-                const unit = p.distance.includes('كم') ? 1000 : 1;
-                const distanceInMeters = distanceNum * unit;
-                console.log(`📏 ${p.name}: ${p.distance} = ${distanceInMeters}m (range: ${filterDistance.min}-${filterDistance.max}m)`);
-                return distanceInMeters >= filterDistance.min && distanceInMeters <= filterDistance.max;
-            });
-            console.log(`✅ After distance filter (${filterDistance.min}-${filterDistance.max}m):`, filtered.length, 'places');
-        }
-
-        // Filter by open now
-        if (filterOpenNow) {
-            filtered = filtered.filter(p => {
-                if (!p.closingTime) return false;
-                return p.closingTime.includes('مفتوح') || p.closingTime.includes('Open');
-            });
-            console.log(`✅ After open now filter:`, filtered.length, 'places');
-        }
-
-        console.log('✅ Final filtered places:', filtered.length);
-        setSortedPlaces(filtered);
-    };
+    }, [latestResponse]);
 
     const handleSortPlaces = (sortBy: 'distance' | 'rating') => {
         const newlySortedPlaces = [...sortedPlaces].sort((a, b) => {
@@ -290,122 +232,6 @@ const ChatBot: React.FC<ChatBotProps> = ({ location }) => {
                             )}
                         </div>
 
-                        {/* Filter Bar */}
-                        <div className="px-4 py-3 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
-                            <div className="flex flex-wrap gap-2" dir="rtl">
-                                {/* All Filter */}
-                                <button
-                                    onClick={() => {
-                                        setFilterRating(null);
-                                        setFilterPrice(null);
-                                        setFilterDistance(null);
-                                        setFilterOpenNow(false);
-                                    }}
-                                    className={`px-3 py-1.5 text-sm rounded-full transition-colors ${
-                                        !filterRating && !filterPrice && !filterDistance && !filterOpenNow
-                                            ? 'bg-emerald-600 text-white'
-                                            : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                                    }`}
-                                >
-                                    الكل
-                                </button>
-
-                                {/* Rating Filter */}
-                                <button
-                                    onClick={() => setFilterRating(filterRating === 4.5 ? null : 4.5)}
-                                    className={`px-3 py-1.5 text-sm rounded-full transition-colors ${
-                                        filterRating === 4.5
-                                            ? 'bg-amber-500 text-white'
-                                            : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                                    }`}
-                                >
-                                    ⭐ 4.5+
-                                </button>
-
-                                {/* Price Filters */}
-                                {['$', '$$', '$$$'].map(price => (
-                                    <button
-                                        key={price}
-                                        onClick={() => setFilterPrice(filterPrice === price ? null : price)}
-                                        className={`px-3 py-1.5 text-sm rounded-full transition-colors ${
-                                            filterPrice === price
-                                                ? 'bg-green-600 text-white'
-                                                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                                        }`}
-                                    >
-                                        💰 {price}
-                                    </button>
-                                ))}
-
-                                {/* Distance Filters */}
-                                {location && (
-                                    <>
-                                        <button
-                                            onClick={() => setFilterDistance(filterDistance?.min === 0 && filterDistance?.max === 5000 ? null : { min: 0, max: 5000 })}
-                                            className={`px-3 py-1.5 text-sm rounded-full transition-colors ${
-                                                filterDistance?.min === 0 && filterDistance?.max === 5000
-                                                    ? 'bg-blue-600 text-white'
-                                                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                                            }`}
-                                        >
-                                            📍 0-5 كم
-                                        </button>
-                                        <button
-                                            onClick={() => setFilterDistance(filterDistance?.min === 5000 && filterDistance?.max === 10000 ? null : { min: 5000, max: 10000 })}
-                                            className={`px-3 py-1.5 text-sm rounded-full transition-colors ${
-                                                filterDistance?.min === 5000 && filterDistance?.max === 10000
-                                                    ? 'bg-blue-600 text-white'
-                                                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                                            }`}
-                                        >
-                                            📍 5-10 كم
-                                        </button>
-                                        <button
-                                            onClick={() => setFilterDistance(filterDistance?.min === 10000 && filterDistance?.max === 20000 ? null : { min: 10000, max: 20000 })}
-                                            className={`px-3 py-1.5 text-sm rounded-full transition-colors ${
-                                                filterDistance?.min === 10000 && filterDistance?.max === 20000
-                                                    ? 'bg-blue-600 text-white'
-                                                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                                            }`}
-                                        >
-                                            📍 10-20 كم
-                                        </button>
-                                        <button
-                                            onClick={() => setFilterDistance(filterDistance?.min === 20000 && filterDistance?.max === 30000 ? null : { min: 20000, max: 30000 })}
-                                            className={`px-3 py-1.5 text-sm rounded-full transition-colors ${
-                                                filterDistance?.min === 20000 && filterDistance?.max === 30000
-                                                    ? 'bg-blue-600 text-white'
-                                                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                                            }`}
-                                        >
-                                            📍 20-30 كم
-                                        </button>
-                                        <button
-                                            onClick={() => setFilterDistance(filterDistance?.min === 30000 && filterDistance?.max === 50000 ? null : { min: 30000, max: 50000 })}
-                                            className={`px-3 py-1.5 text-sm rounded-full transition-colors ${
-                                                filterDistance?.min === 30000 && filterDistance?.max === 50000
-                                                    ? 'bg-blue-600 text-white'
-                                                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                                            }`}
-                                        >
-                                            📍 30-50 كم
-                                        </button>
-                                    </>
-                                )}
-
-                                {/* Open Now Filter */}
-                                <button
-                                    onClick={() => setFilterOpenNow(!filterOpenNow)}
-                                    className={`px-3 py-1.5 text-sm rounded-full transition-colors ${
-                                        filterOpenNow
-                                            ? 'bg-emerald-600 text-white'
-                                            : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                                    }`}
-                                >
-                                    🕐 مفتوح الآن
-                                </button>
-                            </div>
-                        </div>
                         <div className="overflow-y-auto flex-grow p-4">
                             {!isLoading && sortedPlaces.length > 0 ? (
                                 <div className="space-y-3">
