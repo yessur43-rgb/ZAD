@@ -227,6 +227,32 @@ const FindIt: React.FC<FindItProps> = ({ location }) => {
     }
   };
 
+  const handleSearchForItem = async (itemName: string) => {
+    if (!location) {
+      setError('الموقع مطلوب للبحث عن المتاجر. يرجى تمكين الوصول إلى الموقع.');
+      return;
+    }
+
+    console.log('🔍 Searching for item:', itemName);
+    setCategory('product');
+    setIsLoading(true);
+    setError(null);
+    setProductResult(null);
+    setIdentificationResult(null);
+
+    try {
+      const searchResult = await findProductInStoresByText(itemName, location);
+      setProductResult(searchResult);
+      console.log('✅ Search complete:', searchResult);
+    } catch (err) {
+      console.error('❌ Search error:', err);
+      const errorMessage = err instanceof Error ? err.message : 'حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.';
+      setError(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const renderLocationPermissionMessage = () => {
       if (category !== 'product' || location) return null;
       
@@ -462,7 +488,10 @@ const FindIt: React.FC<FindItProps> = ({ location }) => {
         )}
         
         {identificationResult && category === 'identify' && (
-             <IdentificationInfoCard result={identificationResult} />
+             <IdentificationInfoCard
+               result={identificationResult}
+               onSearchForIt={handleSearchForItem}
+             />
         )}
       </div>
     </div>

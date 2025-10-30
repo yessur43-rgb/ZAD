@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 
 // This component uses @zxing/library for barcode scanning.
 // Ensure it is installed in your project: `npm install @zxing/library`
-import { BrowserMultiFormatReader, NotFoundException, IWebcamControls } from '@zxing/library';
+import { BrowserMultiFormatReader, NotFoundException } from '@zxing/library';
 
 interface BarcodeScannerProps {
   onScanSuccess: (result: string) => void;
@@ -11,7 +11,8 @@ interface BarcodeScannerProps {
 
 const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onScanSuccess, onClose }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const controlsRef = useRef<IWebcamControls | null>(null);
+  const codeReaderRef = useRef<BrowserMultiFormatReader | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -20,28 +21,37 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onScanSuccess, onClose 
     }
 
     const codeReader = new BrowserMultiFormatReader();
+    codeReaderRef.current = codeReader;
 
     const startScanner = async () => {
       try {
-        const constraints = {
-            video: { facingMode: 'environment' }
-        };
-
         if (!videoRef.current) {
             setError('عنصر الفيديو غير متوفر.');
             return;
-        };
+        }
 
-        controlsRef.current = await codeReader.decodeFromConstraints(
-            constraints,
+        // Get user media first
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'environment' }
+        });
+
+        streamRef.current = stream;
+
+        // Attach stream to video element
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+        }
+
+        // Start decoding from video element
+        await codeReader.decodeFromVideoElement(
             videoRef.current,
             (result, err) => {
               if (result) {
+                console.log('✅ Barcode scanned:', result.getText());
                 onScanSuccess(result.getText());
               }
               if (err && !(err instanceof NotFoundException)) {
                 console.error('Barcode scan error:', err);
-                setError('تعذر مسح الباركود. يرجى المحاولة مرة أخرى.');
               }
             }
         );
@@ -50,8 +60,10 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onScanSuccess, onClose 
         if (err instanceof Error) {
             if (err.name === 'NotAllowedError') {
                  setError('تم رفض إذن الكاميرا. يرجى منح الإذن وإعادة تحميل الصفحة.');
+            } else if (err.name === 'NotFoundError') {
+                 setError('لم يتم العثور على كاميرا. تأكد من أن جهازك يحتوي على كاميرا.');
             } else {
-                 setError('تعذر بدء تشغيل الماسح الضوئي. هل يوجد تطبيق آخر يستخدم الكاميرا؟');
+                 setError('تعذر بدء تشغيل الماسح الضوئي. يرجى المحاولة مرة أخرى.');
             }
         } else {
             setError('تعذر بدء تشغيل الماسح الضوئي. يرجى منح إذن استخدام الكاميرا.');
@@ -62,9 +74,16 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onScanSuccess, onClose 
     startScanner();
 
     return () => {
-      if (controlsRef.current) {
-        controlsRef.current.stop();
-        controlsRef.current = null;
+      // Stop all video tracks
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+        streamRef.current = null;
+      }
+
+      // Reset code reader
+      if (codeReaderRef.current) {
+        codeReaderRef.current.reset();
+        codeReaderRef.current = null;
       }
     };
   }, [onScanSuccess]);

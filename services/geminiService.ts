@@ -655,25 +655,59 @@ export const findVignetteInfo = async (country: string): Promise<VignetteDetails
 export const identifyObjectOrPlace = async (base64Data: string, mimeType: string): Promise<IdentificationResponse> => {
     const ai = getAiClient();
     const imagePart = { inlineData: { data: base64Data, mimeType } };
-    const textPart = { text: 'تعرف على الكائن الرئيسي أو المعلم في هذه الصورة. إذا كان معلمًا أو مكانًا، قدم وصفًا موجزًا وعنوانه ورابط خرائط جوجل إن أمكن. أجب بتنسيق JSON باللغة العربية.' };
+    const textPart = { text: `حلل هذه الصورة بدقة شديدة وقدم معلومات شاملة:
 
+🔍 **التعرف**:
+- ما هو الشيء/المكان/المنتج في الصورة؟
+- استخدم Google Search للحصول على معلومات دقيقة
+
+📍 **الموقع** (إذا كان مكاناً):
+- الاسم الكامل
+- العنوان التفصيلي
+- المدينة والدولة
+- رابط Google Maps (إحداثيات دقيقة)
+
+📦 **المنتج** (إذا كان منتجاً):
+- اسم المنتج والعلامة التجارية
+- وصف مفصل
+- أماكن شرائه (متاجر، مواقع إلكترونية)
+- السعر التقريبي إن أمكن
+
+🎨 **الوصف**:
+- وصف مفصل وجميل (3-5 جمل)
+- معلومات تاريخية أو ثقافية (للمعالم)
+- استخدامات (للمنتجات)
+- نصائح مفيدة
+
+💡 **معلومات إضافية**:
+- حقائق مثيرة
+- نصائح للزوار (للمعالم)
+- بدائل مشابهة (للمنتجات)
+
+أجب بتنسيق JSON باللغة العربية.` };
+
+    console.log('🔍 Identifying object/place with AI...');
     const response = await ai.models.generateContent({
         model: 'gemini-2.5-pro',
         contents: { parts: [imagePart, textPart] },
         config: {
-            tools: [{ googleSearch: {} }],
+            tools: [{ googleSearch: {} }, { googleMapsSearch: {} }],
+            systemInstruction: 'أنت خبير في التعرف على الأشياء والأماكن والمنتجات. استخدم Google Search و Google Maps للحصول على معلومات دقيقة ومفصلة. قدم معلومات شاملة ومفيدة بلغة جميلة.'
         }
     });
-    
+
+    console.log('✅ Identification complete:', response.text.substring(0, 200));
+
     const formatResponse = await ai.models.generateContent({
         model: 'gemini-2.5-flash',
-        contents: `From the text below, create a JSON object based on IDENTIFICATION_SCHEMA. Text: ${response.text}`,
+        contents: `From the detailed analysis below, create a comprehensive JSON object based on IDENTIFICATION_SCHEMA.
+        Make sure all information is included. Text: ${response.text}`,
         config: {
             responseMimeType: 'application/json',
             responseSchema: IDENTIFICATION_SCHEMA,
         }
     });
-    
+
     return parseJsonResponse<IdentificationResponse>(formatResponse.text, 'Identification');
 };
 
@@ -991,33 +1025,55 @@ export const analyzeEntryImage = async (
     const ai = getAiClient();
     const imagePart = { inlineData: { data: base64Data, mimeType } };
 
-    let textPrompt = `حلل هذه الصورة بدقة وحدد:
-1. نوع المحتوى (فندق، مطعم، معلم سياحي، منظر طبيعي، وثيقة مهمة، إلخ)
-2. عنوان مناسب ووصف تفصيلي
-3. الموقع إن أمكن (اسم المكان، المدينة، الدولة)
-4. التصنيف المناسب: accommodation (سكن)، restaurants (مطاعم)، landmarks (معالم)، memories (ذكريات)، notes (ملاحظات)، أو important (مهم)
-5. كلمات مفتاحية
+    let textPrompt = `حلل هذه الصورة بدقة شديدة وبتفصيل كامل:
+
+📍 **الموقع** (مهم جداً):
+- استخدم Google Search للتعرف على المكان بدقة
+- ابحث عن الاسم الدقيق للمكان/الفندق/المطعم/المعلم
+- حدد العنوان الكامل إن أمكن
+- حدد المدينة والدولة بدقة
+- إذا كان مكاناً مشهوراً، أضف الإحداثيات (latitude, longitude)
+
+🎨 **الوصف** (اجعله جميلاً وشاعرياً):
+- اكتب وصفاً جذاباً ومفصلاً (3-5 جمل)
+- استخدم لغة شاعرية ومثيرة
+- اذكر التفاصيل المميزة والجمالية
+- أضف معلومات تاريخية أو ثقافية إن وجدت
+
+🏷️ **التصنيف**:
+- accommodation: فنادق، شقق، أماكن إقامة
+- restaurants: مطاعم، مقاهي، أماكن طعام
+- landmarks: معالم سياحية، أماكن تاريخية، مساجد
+- memories: مناظر طبيعية، صور شخصية، لحظات عامة
+- notes: معلومات، نصوص، ملاحظات
+- important: جوازات سفر، وثائق، تأشيرات
+
+🔖 **كلمات مفتاحية**: أضف 3-5 كلمات مفتاحية ذات صلة
 
 أجب بتنسيق JSON باللغة العربية.`;
 
     if (userPrompt) {
-        textPrompt += `\n\nملاحظة من المستخدم: "${userPrompt}"`;
+        textPrompt += `\n\n💬 **ملاحظة من المستخدم**: "${userPrompt}"\n(استخدم هذه المعلومة لتحسين التحليل)`;
     }
 
     const textPart = { text: textPrompt };
 
+    console.log('🔍 Analyzing entry with AI...');
     const response = await ai.models.generateContent({
         model: 'gemini-2.5-pro',
         contents: { parts: [imagePart, textPart] },
         config: {
-            tools: [{ googleSearch: {} }],
-            systemInstruction: 'أنت مساعد ذكي متخصص في تحليل صور السفر والرحلات. قدم معلومات دقيقة ومفيدة عن الأماكن والمعالم.'
+            tools: [{ googleSearch: {} }, { googleMapsSearch: {} }],
+            systemInstruction: 'أنت مساعد ذكي متخصص في تحليل صور السفر والرحلات. استخدم Google Search و Google Maps للحصول على معلومات دقيقة جداً عن الأماكن. اجعل الأوصاف جميلة وشاعرية ومفصلة. كن دقيقاً جداً في تحديد المواقع والعناوين.'
         }
     });
 
+    console.log('✅ AI analysis complete:', response.text.substring(0, 200));
+
     const formatResponse = await ai.models.generateContent({
         model: 'gemini-2.5-flash',
-        contents: `Based on this analysis, create a JSON response following ENTRY_ANALYSIS_SCHEMA:\n\n${response.text}`,
+        contents: `Based on this detailed analysis, create a beautiful JSON response following ENTRY_ANALYSIS_SCHEMA.
+        Make sure location information is complete and accurate. Make description poetic and beautiful:\n\n${response.text}`,
         config: {
             responseMimeType: 'application/json',
             responseSchema: ENTRY_ANALYSIS_SCHEMA

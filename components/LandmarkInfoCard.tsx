@@ -3,12 +3,14 @@ import { IdentificationResponse } from '../types';
 import { InfoIcon } from './icons/InfoIcon';
 import { MapPinIcon } from './icons/MapPinIcon';
 import { LinkIcon } from './icons/LinkIcon';
+import { FindItIcon } from './icons/FindItIcon';
 
 interface IdentificationInfoCardProps {
   result: IdentificationResponse;
+  onSearchForIt?: (itemName: string) => void;
 }
 
-const IdentificationInfoCard: React.FC<IdentificationInfoCardProps> = ({ result }) => {
+const IdentificationInfoCard: React.FC<IdentificationInfoCardProps> = ({ result, onSearchForIt }) => {
   return (
     <div className="p-6 bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 animate-fade-in">
       <h3 className="text-3xl font-bold text-center text-gray-900 dark:text-gray-100 mb-6">
@@ -46,6 +48,22 @@ const IdentificationInfoCard: React.FC<IdentificationInfoCardProps> = ({ result 
           </div>
         </div>
       )}
+
+      {onSearchForIt && (
+        <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+          <button
+            onClick={() => onSearchForIt(result.name)}
+            className="w-full flex items-center justify-center gap-3 p-4 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-bold rounded-xl transition-all shadow-lg hover:shadow-xl transform hover:scale-[1.02]"
+          >
+            <FindItIcon className="w-6 h-6" />
+            <span>🔍 ابحث عن أماكن شرائه</span>
+          </button>
+          <p className="text-xs text-gray-500 dark:text-gray-400 text-center mt-2">
+            ابحث عن المتاجر القريبة التي تبيع هذا المنتج
+          </p>
+        </div>
+      )}
+
       <style>{`
             @keyframes fade-in {
                 from { opacity: 0; transform: translateY(10px); }
