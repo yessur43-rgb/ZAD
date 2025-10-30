@@ -182,29 +182,93 @@ const CommunityHub: React.FC = () => {
     const handleCreateStory = () => {
         if (!storyFile || !storyPreview) return;
 
-        telegramService.createStory(
-            storyPreview,
-            storyFile.type.startsWith('image/') ? 'image' : 'video',
-            storyCaption.trim()
-        );
+        try {
+            telegramService.createStory(
+                storyPreview,
+                storyFile.type.startsWith('image/') ? 'image' : 'video',
+                storyCaption.trim()
+            );
 
-        setShowStoryCreator(false);
-        setStoryFile(null);
-        setStoryPreview(null);
-        setStoryCaption('');
-        refreshData();
+            setShowStoryCreator(false);
+            setStoryFile(null);
+            setStoryPreview(null);
+            setStoryCaption('');
+            refreshData();
+
+            console.log('✅ Story created and UI refreshed');
+        } catch (error) {
+            console.error('❌ Failed to create story:', error);
+            alert(error instanceof Error ? error.message : 'حدث خطأ في إنشاء القصة. حاول مرة أخرى.');
+        }
     };
 
-    const handleStoryFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const compressImage = (file: File): Promise<string> => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    let width = img.width;
+                    let height = img.height;
+
+                    // Resize if too large (max 1200px on longest side)
+                    const maxSize = 1200;
+                    if (width > height && width > maxSize) {
+                        height = (height * maxSize) / width;
+                        width = maxSize;
+                    } else if (height > maxSize) {
+                        width = (width * maxSize) / height;
+                        height = maxSize;
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+
+                    const ctx = canvas.getContext('2d');
+                    if (!ctx) {
+                        reject(new Error('Failed to get canvas context'));
+                        return;
+                    }
+
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    // Compress to JPEG with 0.7 quality
+                    const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
+                    resolve(compressedDataUrl);
+                };
+                img.onerror = () => reject(new Error('Failed to load image'));
+                img.src = e.target?.result as string;
+            };
+            reader.onerror = () => reject(new Error('Failed to read file'));
+            reader.readAsDataURL(file);
+        });
+    };
+
+    const handleStoryFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
 
         setStoryFile(file);
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            setStoryPreview(reader.result as string);
-        };
-        reader.readAsDataURL(file);
+
+        try {
+            if (file.type.startsWith('image/')) {
+                // Compress image before preview
+                const compressed = await compressImage(file);
+                setStoryPreview(compressed);
+                console.log('✅ Story image compressed. Original:', file.size, 'bytes, Compressed:', compressed.length, 'chars');
+            } else {
+                // For videos, just use as-is (we could add video compression later)
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    setStoryPreview(reader.result as string);
+                };
+                reader.readAsDataURL(file);
+            }
+        } catch (error) {
+            console.error('❌ Error processing story file:', error);
+            alert('حدث خطأ في معالجة الصورة. حاول مرة أخرى.');
+        }
     };
 
     const handleViewStory = (story: TelegramStory) => {

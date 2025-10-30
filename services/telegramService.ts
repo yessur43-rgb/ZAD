@@ -324,12 +324,46 @@ export const createStory = (
     expiresAt: Date.now() + (24 * 60 * 60 * 1000) // 24 hours
   };
 
-  const stories = getAllStories();
-  stories.push(newStory);
-  localStorage.setItem(STORIES_KEY, JSON.stringify(stories));
+  try {
+    const stories = getAllStories();
+    stories.push(newStory);
+    const storiesJson = JSON.stringify(stories);
 
-  console.log('✅ Story created:', newStory.id);
-  return newStory;
+    console.log('💾 Saving story. Total stories:', stories.length, 'Data size:', storiesJson.length, 'characters');
+
+    localStorage.setItem(STORIES_KEY, storiesJson);
+
+    // Verify it was saved
+    const saved = localStorage.getItem(STORIES_KEY);
+    if (!saved) {
+      throw new Error('Story was not saved to localStorage!');
+    }
+
+    console.log('✅ Story created successfully:', newStory.id);
+    return newStory;
+  } catch (error) {
+    console.error('❌ Error creating story:', error);
+    // If localStorage is full, try to clean up old stories and retry
+    if (error instanceof DOMException && error.name === 'QuotaExceededError') {
+      console.warn('⚠️ localStorage quota exceeded. Cleaning old stories...');
+
+      // Get only stories from last 12 hours
+      const stories = getAllStories();
+      const twelveHoursAgo = Date.now() - (12 * 60 * 60 * 1000);
+      const recentStories = stories.filter(s => s.timestamp > twelveHoursAgo);
+      recentStories.push(newStory);
+
+      try {
+        localStorage.setItem(STORIES_KEY, JSON.stringify(recentStories));
+        console.log('✅ Story saved after cleanup. Stories:', recentStories.length);
+        return newStory;
+      } catch (retryError) {
+        console.error('❌ Failed to save story even after cleanup:', retryError);
+        throw new Error('تعذر حفظ القصة. المساحة المتاحة ممتلئة.');
+      }
+    }
+    throw error;
+  }
 };
 
 export const viewStory = (storyId: string): void => {
