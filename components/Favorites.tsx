@@ -62,7 +62,9 @@ const Favorites: React.FC = () => {
                                 cafes: 'مقاهي',
                                 shopping: 'تسوق',
                                 pharmacies: 'صيدليات',
-                                attractions: 'معالم'
+                                attractions: 'معالم',
+                                activities: 'أنشطة',
+                                supermarkets: 'متاجر'
                             };
                             return (
                                 <button

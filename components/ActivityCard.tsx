@@ -1,8 +1,10 @@
-import React from 'react';
-import { Activity, ActivityStatus } from '../types';
+import React, { useState, useEffect } from 'react';
+import { Activity, ActivityStatus, Place } from '../types';
 import { MapPinIcon } from './icons/MapPinIcon';
 import { ClockIcon } from './icons/ClockIcon';
 import { PriceTagIcon } from './icons/PriceTagIcon';
+import { HeartIcon } from './icons/HeartIcon';
+import { addToFavorites, removeFromFavorites, isFavorite } from '../services/favoritesService';
 
 interface ActivityCardProps {
   activity: Activity;
@@ -54,6 +56,50 @@ const formatOperatingHours = (hours: Record<string, string> | string): string =>
 
 
 const ActivityCard: React.FC<ActivityCardProps> = ({ activity }) => {
+  const [isFav, setIsFav] = useState(false);
+
+  // Check favorite status on mount and when activity changes
+  useEffect(() => {
+    const checkFavoriteStatus = () => {
+      const status = isFavorite(activity.name, activity.address);
+      setIsFav(status);
+    };
+
+    checkFavoriteStatus();
+
+    // Listen for storage changes
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'zad_favorites') {
+        checkFavoriteStatus();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, [activity.name, activity.address]);
+
+  const handleToggleFavorite = () => {
+    if (isFav) {
+      removeFromFavorites(activity.name, activity.address);
+      setIsFav(false);
+    } else {
+      // Convert Activity to Place format for favorites
+      const activityAsPlace: Place = {
+        name: activity.name,
+        address: activity.address,
+        description: activity.description,
+        url: activity.url,
+        rating: 0, // Activities don't have ratings
+        distance: 0, // Activities don't have distance
+      };
+      addToFavorites(activityAsPlace, 'activities');
+      setIsFav(true);
+    }
+  };
+
   return (
     <div className="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
       <div className="flex justify-between items-start gap-4">
@@ -63,15 +109,26 @@ const ActivityCard: React.FC<ActivityCardProps> = ({ activity }) => {
           </span>
           <h3 className="font-bold text-lg text-gray-900 dark:text-gray-100">{activity.name}</h3>
         </div>
-        <div className="flex-shrink-0 text-left">
-           {activity.status && (
+        <div className="flex-shrink-0 flex flex-col items-end gap-2">
+          <button
+            onClick={handleToggleFavorite}
+            className={`p-2 rounded-full transition-colors ${
+              isFav
+                ? 'text-red-500 hover:text-red-600'
+                : 'text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-400'
+            }`}
+            title={isFav ? 'إزالة من المفضلة' : 'إضافة للمفضلة'}
+          >
+            <HeartIcon className="w-6 h-6" />
+          </button>
+          {activity.status && (
             <span className={`px-3 py-1 text-sm font-semibold rounded-full ${getStatusStyles(activity.status)}`}>
               {activity.status}
             </span>
-           )}
-           {activity.statusNote && (
-                <p className="text-xs text-amber-600 dark:text-amber-400 mt-1 text-right">{activity.statusNote}</p>
-           )}
+          )}
+          {activity.statusNote && (
+            <p className="text-xs text-amber-600 dark:text-amber-400 mt-1 text-right">{activity.statusNote}</p>
+          )}
         </div>
       </div>
 

@@ -121,9 +121,16 @@ const OnMyWay: React.FC<OnMyWayProps> = ({ location }) => {
                     {error && <p className="text-center text-red-500 bg-red-100 dark:bg-red-900/50 p-3 rounded-lg">{error}</p>}
                     {!isLoading && results.length > 0 && (
                         <div className="space-y-3">
-                            {results.map((place, index) => (
-                                <PlaceCard key={index} place={place} category="restaurants" />
-                            ))}
+                            {results.map((place, index) => {
+                                // Map route category to search category for favorites
+                                const searchCategory = currentCategory === 'restaurants' ? 'restaurants' :
+                                                     currentCategory === 'cafes' ? 'cafes' :
+                                                     currentCategory === 'mosques' ? 'attractions' :
+                                                     'attractions';
+                                return (
+                                    <PlaceCard key={index} place={place} category={searchCategory} />
+                                );
+                            })}
                         </div>
                     )}
                     {!isLoading && results.length === 0 && currentCategory && (
