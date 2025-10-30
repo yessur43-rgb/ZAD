@@ -39,58 +39,125 @@ const ImageAnalyzer: React.FC = () => {
     return new File([u8arr], filename, { type: mime });
   };
 
-  const handleCapture = (dataUrl: string) => {
+  const handleCapture = async (dataUrl: string) => {
     setIsCameraOpen(false);
     setResult(null);
     setError(null);
-    setImage(dataUrl);
+
     try {
         const file = dataURLtoFile(dataUrl, `capture-${Date.now()}.jpg`);
         setImageFile(file);
+
+        // Compress the captured image
+        const compressed = await compressImage(file);
+        setImage(compressed);
+        console.log('✅ Camera image compressed. Original:', file.size, 'bytes, Compressed:', compressed.length, 'chars');
     } catch(e) {
-        console.error("Failed to convert data URL to file", e);
-        setError("فشل تحويل الصورة الملتقطة.");
+        console.error("Failed to process captured image", e);
+        setError("فشل معالجة الصورة الملتقطة.");
     }
   };
 
 
-  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const compressImage = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+
+          // Resize if too large (max 1600px for product analysis quality)
+          const maxSize = 1600;
+          if (width > height && width > maxSize) {
+            height = (height * maxSize) / width;
+            width = maxSize;
+          } else if (height > maxSize) {
+            width = (width * maxSize) / height;
+            height = maxSize;
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            reject(new Error('Failed to get canvas context'));
+            return;
+          }
+
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // Compress to JPEG with 0.85 quality
+          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+          resolve(compressedDataUrl);
+        };
+        img.onerror = () => reject(new Error('Failed to load image'));
+        img.src = e.target?.result as string;
+      };
+      reader.onerror = () => reject(new Error('Failed to read file'));
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleImageChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       setResult(null);
       setError(null);
       setImageFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImage(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+
+      try {
+        if (file.type.startsWith('image/')) {
+          const compressed = await compressImage(file);
+          setImage(compressed);
+          console.log('✅ Image compressed. Original:', file.size, 'bytes, Compressed:', compressed.length, 'chars');
+        } else {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            setImage(reader.result as string);
+          };
+          reader.readAsDataURL(file);
+        }
+      } catch (error) {
+        console.error('❌ Error compressing image:', error);
+        setError('حدث خطأ في معالجة الصورة. حاول مرة أخرى.');
+      }
     }
   };
 
   const handleAnalyzeClick = async () => {
     if (!imageFile || !image) return;
 
+    console.log('🔍 Starting product analysis...');
     setIsLoading(true);
     setError(null);
     setResult(null);
 
     try {
       const base64Data = image.split(',')[1];
-      const analysisResult = await analyzeImage(base64Data, imageFile.type);
+      console.log('📤 Sending image to API. Size:', base64Data.length, 'characters');
+
+      const analysisResult = await analyzeImage(base64Data, 'image/jpeg');
+
+      console.log('✅ Product analysis complete:', analysisResult);
       setResult(analysisResult);
-      // FIX: Save successful image analysis to history.
+
+      // Save successful image analysis to history
       saveScanHistoryItem({
         type: 'image',
         identifier: imageFile.name,
         result: analysisResult,
       });
     } catch (err) {
+      console.error('❌ Product analysis error:', err);
       const errorMessage = err instanceof Error ? err.message : 'حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.';
       setError(errorMessage);
-      console.error(err);
     } finally {
       setIsLoading(false);
+      console.log('✅ Analysis complete, loading stopped');
     }
   };
 

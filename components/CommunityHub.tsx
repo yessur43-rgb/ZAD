@@ -133,17 +133,33 @@ const CommunityHub: React.FC = () => {
         refreshData();
     };
 
-    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file || !selectedChat) return;
 
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            const base64 = reader.result as string;
+        try {
+            let fileData: string;
+
+            if (file.type.startsWith('image/')) {
+                // Compress images before sending
+                fileData = await compressImage(file);
+                console.log('✅ Message image compressed. Original:', file.size, 'bytes, Compressed:', fileData.length, 'chars');
+            } else {
+                // For non-images, send as-is
+                fileData = await new Promise<string>((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                        resolve(reader.result as string);
+                    };
+                    reader.onerror = () => reject(new Error('Failed to read file'));
+                    reader.readAsDataURL(file);
+                });
+            }
+
             telegramService.sendMessage(
                 selectedChat.id,
                 file.type.startsWith('image/') ? 'image' : 'file',
-                base64,
+                fileData,
                 undefined,
                 file.name,
                 file.size
@@ -152,8 +168,10 @@ const CommunityHub: React.FC = () => {
             const updatedMessages = telegramService.getMessagesByChat(selectedChat.id);
             setMessages(updatedMessages);
             refreshData();
-        };
-        reader.readAsDataURL(file);
+        } catch (error) {
+            console.error('❌ Error uploading file:', error);
+            alert('حدث خطأ في رفع الملف. حاول مرة أخرى.');
+        }
 
         if (fileInputRef.current) {
             fileInputRef.current.value = '';

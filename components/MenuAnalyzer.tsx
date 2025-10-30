@@ -15,37 +15,98 @@ const MenuAnalyzer: React.FC = () => {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const compressImage = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+
+          // Resize if too large (max 1600px for menu OCR quality)
+          const maxSize = 1600;
+          if (width > height && width > maxSize) {
+            height = (height * maxSize) / width;
+            width = maxSize;
+          } else if (height > maxSize) {
+            width = (width * maxSize) / height;
+            height = maxSize;
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            reject(new Error('Failed to get canvas context'));
+            return;
+          }
+
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // Compress to JPEG with 0.85 quality
+          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+          resolve(compressedDataUrl);
+        };
+        img.onerror = () => reject(new Error('Failed to load image'));
+        img.src = e.target?.result as string;
+      };
+      reader.onerror = () => reject(new Error('Failed to read file'));
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleImageChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       setResult(null);
       setError(null);
       setImageFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImage(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+
+      try {
+        if (file.type.startsWith('image/')) {
+          const compressed = await compressImage(file);
+          setImage(compressed);
+          console.log('✅ Menu image compressed. Original:', file.size, 'bytes, Compressed:', compressed.length, 'chars');
+        } else {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            setImage(reader.result as string);
+          };
+          reader.readAsDataURL(file);
+        }
+      } catch (error) {
+        console.error('❌ Error compressing image:', error);
+        setError('حدث خطأ في معالجة الصورة. حاول مرة أخرى.');
+      }
     }
   };
 
   const handleAnalyzeClick = async () => {
     if (!imageFile || !image) return;
 
+    console.log('🔍 Starting menu analysis...');
     setIsLoading(true);
     setError(null);
     setResult(null);
 
     try {
       const base64Data = image.split(',')[1];
-      const analysisResult = await analyzeMenuImage(base64Data, imageFile.type);
+      console.log('📤 Sending menu image to API. Size:', base64Data.length, 'characters');
+
+      const analysisResult = await analyzeMenuImage(base64Data, 'image/jpeg');
+
+      console.log('✅ Menu analysis complete:', analysisResult);
       setResult(analysisResult);
     } catch (err) {
+      console.error('❌ Menu analysis error:', err);
       const errorMessage = err instanceof Error ? err.message : 'حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.';
       setError(errorMessage);
-      console.error(err);
     } finally {
       setIsLoading(false);
+      console.log('✅ Menu analysis complete, loading stopped');
     }
   };
   
