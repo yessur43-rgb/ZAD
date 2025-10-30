@@ -500,3 +500,54 @@ export interface ChatParticipant {
   lastSeen?: number;
   isOnline?: boolean;
 }
+
+// --- MySpace (Personal Travel Journal) ---
+export type EntryCategory = 'accommodation' | 'restaurants' | 'landmarks' | 'memories' | 'notes' | 'important';
+
+export interface EntryLocation {
+  name: string;
+  address?: string;
+  latitude?: number;
+  longitude?: number;
+  city?: string;
+  country?: string;
+}
+
+export interface MySpaceEntry {
+  id: string;
+  category: EntryCategory;
+  title: string;
+  description: string;
+  images: string[]; // base64 compressed images
+  location?: EntryLocation;
+  date: number; // timestamp
+  rating?: number; // 1-5 stars (for accommodation, restaurants)
+  notes?: string; // personal notes
+  aiAnalysis?: {
+    detectedType: string; // what AI detected (hotel, restaurant, landmark, etc.)
+    extractedInfo: string; // AI description
+    suggestedCategory: EntryCategory;
+    confidence: number; // 0-1
+  };
+  tags?: string[]; // custom tags
+  isFavorite?: boolean;
+}
+
+export interface MySpaceStats {
+  totalEntries: number;
+  entriesByCategory: Record<EntryCategory, number>;
+  countriesVisited: string[];
+  citiesVisited: string[];
+  favoriteCount: number;
+  lastUpdated: number;
+}
+
+export interface EntryAnalysisResponse {
+  detectedType: string; // "فندق", "مطعم", "معلم سياحي", "منظر طبيعي", etc.
+  title: string; // extracted or suggested title
+  description: string; // AI-generated description
+  location?: EntryLocation;
+  suggestedCategory: EntryCategory;
+  confidence: number;
+  tags?: string[];
+}

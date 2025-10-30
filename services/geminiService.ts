@@ -943,3 +943,86 @@ export const reverseGeocode = async (latitude: number, longitude: number): Promi
 
     return response.text.trim();
 };
+
+// ========================================
+// MySpace - Entry Analysis
+// ========================================
+
+const ENTRY_ANALYSIS_SCHEMA = {
+    type: Type.OBJECT,
+    properties: {
+        detectedType: { type: Type.STRING, description: 'نوع المحتوى: فندق، مطعم، معلم سياحي، منظر طبيعي، وثيقة، إلخ' },
+        title: { type: Type.STRING, description: 'عنوان مقترح للإدخال' },
+        description: { type: Type.STRING, description: 'وصف تفصيلي للصورة' },
+        location: {
+            type: Type.OBJECT,
+            properties: {
+                name: { type: Type.STRING, description: 'اسم المكان إن وجد' },
+                address: { type: Type.STRING, nullable: true },
+                latitude: { type: Type.NUMBER, nullable: true },
+                longitude: { type: Type.NUMBER, nullable: true },
+                city: { type: Type.STRING, nullable: true },
+                country: { type: Type.STRING, nullable: true }
+            },
+            required: ['name'],
+            nullable: true
+        },
+        suggestedCategory: {
+            type: Type.STRING,
+            enum: ['accommodation', 'restaurants', 'landmarks', 'memories', 'notes', 'important'],
+            description: 'التصنيف المقترح'
+        },
+        confidence: { type: Type.NUMBER, description: 'مستوى الثقة 0-1' },
+        tags: {
+            type: Type.ARRAY,
+            items: { type: Type.STRING },
+            nullable: true,
+            description: 'كلمات مفتاحية'
+        }
+    },
+    required: ['detectedType', 'title', 'description', 'suggestedCategory', 'confidence']
+};
+
+export const analyzeEntryImage = async (
+    base64Data: string,
+    mimeType: string,
+    userPrompt?: string
+): Promise<import('../types').EntryAnalysisResponse> => {
+    const ai = getAiClient();
+    const imagePart = { inlineData: { data: base64Data, mimeType } };
+
+    let textPrompt = `حلل هذه الصورة بدقة وحدد:
+1. نوع المحتوى (فندق، مطعم، معلم سياحي، منظر طبيعي، وثيقة مهمة، إلخ)
+2. عنوان مناسب ووصف تفصيلي
+3. الموقع إن أمكن (اسم المكان، المدينة، الدولة)
+4. التصنيف المناسب: accommodation (سكن)، restaurants (مطاعم)، landmarks (معالم)، memories (ذكريات)، notes (ملاحظات)، أو important (مهم)
+5. كلمات مفتاحية
+
+أجب بتنسيق JSON باللغة العربية.`;
+
+    if (userPrompt) {
+        textPrompt += `\n\nملاحظة من المستخدم: "${userPrompt}"`;
+    }
+
+    const textPart = { text: textPrompt };
+
+    const response = await ai.models.generateContent({
+        model: 'gemini-2.5-pro',
+        contents: { parts: [imagePart, textPart] },
+        config: {
+            tools: [{ googleSearch: {} }],
+            systemInstruction: 'أنت مساعد ذكي متخصص في تحليل صور السفر والرحلات. قدم معلومات دقيقة ومفيدة عن الأماكن والمعالم.'
+        }
+    });
+
+    const formatResponse = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: `Based on this analysis, create a JSON response following ENTRY_ANALYSIS_SCHEMA:\n\n${response.text}`,
+        config: {
+            responseMimeType: 'application/json',
+            responseSchema: ENTRY_ANALYSIS_SCHEMA
+        }
+    });
+
+    return parseJsonResponse<import('../types').EntryAnalysisResponse>(formatResponse.text, 'EntryAnalysis');
+};

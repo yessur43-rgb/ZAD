@@ -25,7 +25,7 @@ const OnMyWay = lazy(() => import('./components/OnMyWay'));
 const MenuAnalyzer = lazy(() => import('./components/MenuAnalyzer'));
 const ActivitiesFinder = lazy(() => import('./components/ActivitiesFinder'));
 const IngredientGuide = lazy(() => import('./components/IngredientGuide'));
-const CommunityHub = lazy(() => import('./components/CommunityHub'));
+const MySpace = lazy(() => import('./components/MySpace'));
 const Favorites = lazy(() => import('./components/Favorites'));
 
 
@@ -130,7 +130,7 @@ const App: React.FC = () => {
           menu: <MenuAnalyzer />,
           activities: <ActivitiesFinder location={userLocation} />,
           ingredient: <IngredientGuide />,
-          community: <CommunityHub />,
+          community: <MySpace />,
           favorites: <Favorites />,
       };
       const toolLabelMap: Record<ToolView, string> = {
@@ -141,7 +141,7 @@ const App: React.FC = () => {
           menu: 'تحليل القائمة',
           activities: 'الأنشطة',
           ingredient: 'دليل المكونات',
-          community: 'مركز المجتمع',
+          community: 'مساحتي',
           favorites: 'المفضلة',
       };
       
