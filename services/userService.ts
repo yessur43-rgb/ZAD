@@ -58,6 +58,16 @@ export const setUsername = (userId: string, username: string): void => {
     saveUserProfiles(profiles);
 };
 
+export const setUserName = (username: string): void => {
+    const userId = getUserId();
+    setUsername(userId, username);
+};
+
+export const getUserName = (): string => {
+    const userId = getUserId();
+    return getUsername(userId) || `مستخدم ${userId.substring(0, 4)}`;
+};
+
 export const getAllUserProfiles = (): Record<string, string> => {
     return getUserProfiles();
 };

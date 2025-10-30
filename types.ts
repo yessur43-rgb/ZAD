@@ -414,3 +414,89 @@ export interface QuickQuestion {
   status: QuestionStatus;
   tags: string[];
 }
+
+// --- Telegram-Style Chat System ---
+
+export type ChatType = 'private' | 'group' | 'channel';
+export type MessageType = 'text' | 'image' | 'file' | 'location' | 'audio';
+
+export interface TelegramMessage {
+  id: string;
+  chatId: string;
+  senderId: string;
+  senderName: string;
+  type: MessageType;
+  content: string; // text content or file URL/base64
+  fileName?: string; // for files
+  fileSize?: number; // for files in bytes
+  location?: {
+    name: string;
+    lat: number;
+    lon: number;
+  };
+  replyToId?: string; // message ID being replied to
+  reactions: MessageReaction[];
+  timestamp: number;
+  isRead: boolean;
+  isEdited: boolean;
+  editedAt?: number;
+  deliveredTo: string[]; // user IDs who received the message
+  readBy: string[]; // user IDs who read the message
+}
+
+export interface MessageReaction {
+  emoji: string;
+  userId: string;
+  userName: string;
+  timestamp: number;
+}
+
+export interface TelegramChat {
+  id: string;
+  type: ChatType;
+  name: string;
+  description?: string;
+  avatar?: string; // base64 or URL
+  participants: string[]; // user IDs
+  admins: string[]; // user IDs with admin rights
+  createdBy: string;
+  createdAt: number;
+  lastMessageId?: string;
+  lastMessageText?: string;
+  lastMessageTime?: number;
+  unreadCount: Record<string, number>; // userId -> unread count
+  pinnedMessageIds: string[];
+  mutedBy: string[]; // user IDs who muted this chat
+  isOnline?: boolean; // for private chats only
+  lastSeen?: number; // for private chats only
+  typingUsers: string[]; // user IDs currently typing
+}
+
+export interface TelegramStory {
+  id: string;
+  userId: string;
+  userName: string;
+  userAvatar?: string;
+  mediaUrl: string; // base64 or URL
+  type: 'image' | 'video';
+  caption?: string;
+  viewedBy: StoryView[];
+  reactions: MessageReaction[];
+  timestamp: number;
+  expiresAt: number; // 24 hours
+}
+
+export interface StoryView {
+  userId: string;
+  userName: string;
+  viewedAt: number;
+}
+
+export interface ChatParticipant {
+  userId: string;
+  userName: string;
+  role: 'member' | 'admin' | 'owner';
+  joinedAt: number;
+  lastSeen?: number;
+  isOnline?: boolean;
+}
