@@ -17,6 +17,7 @@ import { reverseGeocode } from './services/geminiService';
 import LocationDisplay from './components/LocationDisplay';
 import { UsersIcon } from './components/icons/UsersIcon';
 import { HeartIcon } from './components/icons/HeartIcon';
+import { CityCenterIcon } from './components/icons/CityCenterIcon';
 
 const ImageAnalyzer = lazy(() => import('./components/ImageAnalyzer'));
 const ChatBot = lazy(() => import('./components/ChatBot'));
@@ -27,9 +28,10 @@ const ActivitiesFinder = lazy(() => import('./components/ActivitiesFinder'));
 const IngredientGuide = lazy(() => import('./components/IngredientGuide'));
 const MySpace = lazy(() => import('./components/MySpace'));
 const Favorites = lazy(() => import('./components/Favorites'));
+const CityCenters = lazy(() => import('./components/CityCenters'));
 
 
-type ToolView = 'image' | 'chat' | 'findit' | 'menu' | 'ingredient' | 'activities' | 'onmyway' | 'community' | 'favorites';
+type ToolView = 'image' | 'chat' | 'findit' | 'menu' | 'ingredient' | 'activities' | 'onmyway' | 'community' | 'favorites' | 'citycenters';
 
 const App: React.FC = () => {
   const [selectedTool, setSelectedTool] = useState<ToolView | null>(null);
@@ -132,6 +134,7 @@ const App: React.FC = () => {
           ingredient: <IngredientGuide />,
           community: <MySpace />,
           favorites: <Favorites />,
+          citycenters: <CityCenters location={userLocation} />,
       };
       const toolLabelMap: Record<ToolView, string> = {
           image: 'تحليل المنتج',
@@ -143,6 +146,7 @@ const App: React.FC = () => {
           ingredient: 'دليل المكونات',
           community: 'مساحتي',
           favorites: 'المفضلة',
+          citycenters: 'مراكز المدن',
       };
       
       return (
@@ -183,9 +187,10 @@ const App: React.FC = () => {
     const toolButtons: { id: ToolView, label: string, Icon: React.FC<any> }[] = [
       { id: 'chat', label: 'ابحث عن أماكن', Icon: ChatIcon },
       { id: 'favorites', label: 'المفضلة', Icon: HeartIcon },
+      { id: 'citycenters', label: 'مراكز المدن', Icon: CityCenterIcon },
       { id: 'onmyway', label: 'على طريقي', Icon: OnMyWayIcon },
       { id: 'activities', label: 'الأنشطة', Icon: ActivityIcon },
-      { id: 'community', label: 'مركز المجتمع', Icon: UsersIcon },
+      { id: 'community', label: 'مساحتي', Icon: UsersIcon },
       { id: 'image', label: 'تحليل المنتج', Icon: ImageIcon },
       { id: 'menu', label: 'تحليل القائمة', Icon: MenuIcon },
       { id: 'findit', label: 'أوجدها لي', Icon: FindItIcon },

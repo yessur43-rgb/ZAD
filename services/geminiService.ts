@@ -1082,3 +1082,135 @@ export const analyzeEntryImage = async (
 
     return parseJsonResponse<import('../types').EntryAnalysisResponse>(formatResponse.text, 'EntryAnalysis');
 };
+// ===============================================
+// CITY CENTERS - Find nearby city centers
+// ===============================================
+
+const CITY_CENTERS_SCHEMA = {
+    type: 'object' as const,
+    properties: {
+        currentCity: {
+            type: 'object' as const,
+            properties: {
+                cityName: { type: 'string' as const },
+                cityNameEnglish: { type: 'string' as const },
+                country: { type: 'string' as const },
+                centerName: { type: 'string' as const },
+                centerLocation: {
+                    type: 'object' as const,
+                    properties: {
+                        latitude: { type: 'number' as const },
+                        longitude: { type: 'number' as const }
+                    }
+                },
+                distance: { type: 'string' as const },
+                travelTime: { type: 'string' as const },
+                description: { type: 'string' as const },
+                highlights: { type: 'array' as const, items: { type: 'string' as const } },
+                googleMapsUrl: { type: 'string' as const },
+                isCurrentCity: { type: 'boolean' as const }
+            },
+            required: ['cityName', 'country', 'centerName', 'description', 'highlights', 'isCurrentCity']
+        },
+        nearbyCities: {
+            type: 'array' as const,
+            items: {
+                type: 'object' as const,
+                properties: {
+                    cityName: { type: 'string' as const },
+                    cityNameEnglish: { type: 'string' as const },
+                    country: { type: 'string' as const },
+                    centerName: { type: 'string' as const },
+                    centerLocation: {
+                        type: 'object' as const,
+                        properties: {
+                            latitude: { type: 'number' as const },
+                            longitude: { type: 'number' as const }
+                        }
+                    },
+                    distance: { type: 'string' as const },
+                    travelTime: { type: 'string' as const },
+                    description: { type: 'string' as const },
+                    highlights: { type: 'array' as const, items: { type: 'string' as const } },
+                    googleMapsUrl: { type: 'string' as const },
+                    isCurrentCity: { type: 'boolean' as const }
+                },
+                required: ['cityName', 'country', 'centerName', 'distance', 'description', 'highlights', 'isCurrentCity']
+            }
+        }
+    },
+    required: ['currentCity', 'nearbyCities']
+};
+
+export const findNearbyCityCenters = async (
+    location: import('../types').UserLocation
+): Promise<import('../types').CityCentersResponse> => {
+    const ai = getAiClient();
+
+    const prompt = `أنت خبير في الجغرافيا والمدن. المستخدم موجود في موقع:
+الاسم: ${location.name}
+الإحداثيات: ${location.latitude}, ${location.longitude}
+
+المطلوب:
+1️⃣ **حدد المدينة الحالية** التي يوجد فيها المستخدم بدقة
+2️⃣ **ابحث عن المدن المجاورة** القريبة (5-10 مدن) في نطاق 100 كم
+
+لكل مدينة (الحالية + المجاورة)، يجب أن تعطيني:
+
+📍 **معلومات المدينة:**
+- اسم المدينة بالعربية
+- اسم المدينة بالإنجليزية
+- الدولة
+
+🏙️ **مركز المدينة (Downtown/Center):**
+- اسم المركز أو وسط المدينة (مثل: وسط الرياض، King Fahd Road, العليا، إلخ)
+- الإحداثيات الدقيقة للمركز (latitude, longitude) باستخدام Google Maps Search
+- رابط Google Maps للمركز
+
+📏 **المسافة والوقت:**
+- المسافة من الموقع الحالي بالكيلومتر (مثل: "45 كم")
+- وقت الوصول التقريبي (مثل: "30 دقيقة بالسيارة")
+
+📝 **الوصف:**
+- وصف جميل ومفصل عن مركز المدينة (2-3 جمل)
+- ماذا يوجد في المركز (مثل: مولات، مطاعم، معالم سياحية، فنادق، إلخ)
+
+✨ **أبرز المعالم:**
+- قائمة بـ 3-5 من أبرز المولات أو المعالم في مركز المدينة
+- مثل: "مول العرب، الرياض بارك، برج المملكة"
+
+**ملاحظات مهمة:**
+- استخدم Google Maps Search للحصول على إحداثيات دقيقة لمراكز المدن
+- رتب المدن المجاورة من الأقرب للأبعد
+- كن دقيقاً في حساب المسافات
+- اذكر معلومات حقيقية وموثوقة فقط
+- الوصف يجب أن يكون بالعربية الفصحى
+- اجعل الوصف جذاباً ومفيداً للمسافر
+
+أجب بتنسيق JSON باللغة العربية حسب CITY_CENTERS_SCHEMA.`;
+
+    console.log('🏙️ Finding nearby city centers for:', location.name);
+    
+    const response = await ai.models.generateContent({
+        model: 'gemini-2.5-pro',
+        contents: { parts: [{ text: prompt }] },
+        config: {
+            tools: [{ googleSearch: {} }, { googleMapsSearch: {} }],
+            systemInstruction: 'أنت خبير جغرافيا ومدن. استخدم Google Search و Google Maps Search للحصول على معلومات دقيقة عن المدن ومراكزها. كن دقيقاً في المسافات والأوقات. قدم معلومات حقيقية ومفيدة فقط.'
+        }
+    });
+
+    console.log('✅ City centers search complete');
+
+    const formatResponse = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: `Based on this analysis, create a JSON response following CITY_CENTERS_SCHEMA.
+        Make sure all locations have accurate coordinates and maps URLs:\n\n${response.text}`,
+        config: {
+            responseMimeType: 'application/json',
+            responseSchema: CITY_CENTERS_SCHEMA
+        }
+    });
+
+    return parseJsonResponse<import('../types').CityCentersResponse>(formatResponse.text, 'CityCenters');
+};

@@ -551,3 +551,26 @@ export interface EntryAnalysisResponse {
   confidence: number;
   tags?: string[];
 }
+
+// --- City Centers (Nearby Cities) ---
+export interface CityCenter {
+  cityName: string; // اسم المدينة
+  cityNameEnglish?: string; // الاسم بالإنجليزية
+  country: string; // الدولة
+  centerName: string; // اسم المركز/وسط المدينة
+  centerLocation?: {
+    latitude: number;
+    longitude: number;
+  };
+  distance: string; // المسافة من الموقع الحالي (مثل: "45 كم")
+  travelTime?: string; // وقت الوصول التقريبي (مثل: "30 دقيقة بالسيارة")
+  description: string; // وصف المركز وماذا يوجد فيه
+  highlights: string[]; // أبرز المعالم أو المولات في المركز
+  googleMapsUrl?: string; // رابط Google Maps للمركز
+  isCurrentCity: boolean; // هل هذه المدينة الحالية
+}
+
+export interface CityCentersResponse {
+  currentCity: CityCenter; // المدينة الحالية
+  nearbyCities: CityCenter[]; // المدن المجاورة
+}
